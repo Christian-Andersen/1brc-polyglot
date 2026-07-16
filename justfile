@@ -1,15 +1,31 @@
 default:
     @just --list
 
-make-data:
+# Prepare data and symlinks inside the ./data directory (defaults to 1B rows)
+data power="9":
     #!/usr/bin/env bash
-    mkdir -p ./data/
-    echo "*" > ./data/.gitignore
-    for ((i=10; i<=10**9; i*=10)); do
-      with_commas=$(printf "%'d" "$i")
-      filename_suffix="${with_commas//,/_}"
-      echo "Generating $with_commas measurements..."
-      java ./CreateMeasurementsFast.java $i
-      mv "./measurements.txt" "./data/${filename_suffix}.txt"
-    done
-    ln -sf 1_000_000_000.txt ./data/measurements.txt
+    set -euo pipefail
+    mkdir -p ./data/measurements/ ./data/solutions/
+    echo '*' > ./data/.gitignore
+
+    FILENAME="1e{{power}}.txt"
+    ROWS=$((10**{{power}}))
+
+    # 1. Generate the data only if it doesn't exist yet
+    if [ ! -f "./data/measurements/${FILENAME}" ]; then
+        echo "--> ${FILENAME} not found. Generating ${ROWS} measurements..."
+
+        # Defensive cleanup in case a stray file left over in root
+        rm -f ./measurements.txt
+
+        java ./CreateMeasurements.java ${ROWS}
+        java ./CalculateAverage_baseline.java > "./data/solutions/${FILENAME}"
+        mv "./measurements.txt" "./data/measurements/${FILENAME}"
+    else
+        echo "--> ${FILENAME} already exists. Skipping heavy generation step."
+    fi
+
+    # 2. Update the active symlinks inside the ./data folder
+    echo "--> Swapping symlinks to target ${FILENAME}..."
+    ln -sf "measurements/${FILENAME}" "./data/measurements.txt"
+    ln -sf "solutions/${FILENAME}" "./data/solution.txt"
