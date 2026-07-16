@@ -2,7 +2,7 @@ from collections import defaultdict
 from pathlib import Path
 from statistics import mean
 
-DATA_PATH = Path("../data/measurements.txt")
+DATA_PATH = Path("../../data/measurements.txt")
 
 
 def main() -> int:
