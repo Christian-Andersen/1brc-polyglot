@@ -21,6 +21,17 @@ run:
       )
     done
 
+benchmark:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    args=()
+    args+=(--warmup 1)
+    for dir in ./solutions/*/; do
+      lang=$(basename "$dir")
+      args+=(--command-name "$lang" "just --justfile ${dir}justfile run")
+    done
+    hyperfine "${args[@]}"
+
 data power="9":
     #!/usr/bin/env bash
     set -euo pipefail
