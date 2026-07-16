@@ -1,0 +1,14 @@
+set dotenv-load
+
+alias c := check
+alias r := run
+
+[private]
+default:
+    @just --choose
+
+check:
+    uvx prek@latest run --all-files
+
+run *args:
+    uv run -- main.py {{ args }}
