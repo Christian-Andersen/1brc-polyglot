@@ -12,3 +12,4 @@ make-data:
       java ./CreateMeasurementsFast.java $i
       mv "./measurements.txt" "./data/${filename_suffix}.txt"
     done
+    ln -sf 1_000_000_000.txt ./data/measurements.txt
