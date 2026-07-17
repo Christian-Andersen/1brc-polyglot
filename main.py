@@ -81,12 +81,14 @@ def run_all() -> bool:
             continue
         lang = dir.name
         try:
+            start = time.perf_counter()
             result = subprocess.run(
                 ["just", "run"],
                 cwd=dir,
                 capture_output=True,
                 text=True,
             )
+            elapsed = time.perf_counter() - start
             if result.returncode != 0:
                 console.print(
                     Panel(
@@ -100,15 +102,29 @@ def run_all() -> bool:
 
             actual = format_output(result.stdout)
             if actual != expected:
-                diff = difflib.unified_diff(
-                    expected,
-                    actual,
-                    fromfile="data/solution.txt",
-                    tofile=f"{lang}/output",
+                diff_lines = list(
+                    difflib.unified_diff(
+                        expected,
+                        actual,
+                        fromfile="data/solution.txt",
+                        tofile=f"{lang}/output",
+                    )
                 )
+                colored = []
+                for line in diff_lines:
+                    if line.startswith("+++") or line.startswith("---"):
+                        colored.append(f"[bold]{line}[/bold]")
+                    elif line.startswith("@@"):
+                        colored.append(f"[cyan]{line}[/cyan]")
+                    elif line.startswith("+"):
+                        colored.append(f"[green]{line}[/green]")
+                    elif line.startswith("-"):
+                        colored.append(f"[red]{line}[/red]")
+                    else:
+                        colored.append(line)
                 console.print(
                     Panel(
-                        f"[bold red]has differences[/bold red]\n{''.join(diff)}",
+                        f"[bold red]has differences[/bold red]\n{''.join(colored)}",
                         title=f"[red]{lang}[/red]",
                         border_style="red",
                     )
@@ -117,7 +133,7 @@ def run_all() -> bool:
             else:
                 console.print(
                     Panel(
-                        "[bold green]OK[/bold green]",
+                        f"[bold green]OK - {elapsed:.3f}s[/bold green]",
                         title=f"[green]{lang}[/green]",
                         border_style="green",
                     )
