@@ -1,0 +1,16 @@
+[[repos]]
+repo = "local"
+
+[[repos.hooks]]
+id = "biome-check"
+name = "biome-check"
+language = "system"
+pass_filenames = false
+entry = "bunx @biomejs/biome check main.ts"
+
+[[repos.hooks]]
+id = "tsc"
+name = "tsc"
+language = "system"
+pass_filenames = false
+entry = "bunx tsc --noEmit"
