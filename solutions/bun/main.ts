@@ -1,3 +1,6 @@
+import readline from "node:readline";
+import fs from "node:fs";
+
 const DATA_PATH = "../../data/measurements.txt";
 
 type Stats = {
@@ -12,12 +15,13 @@ function round_toward_positive(value: number): string {
 }
 
 async function main(): Promise<void> {
-	const file = Bun.file(DATA_PATH);
-	const stream = file.stream();
-	const decoder = new TextDecoder();
+	const fileStream = fs.createReadStream(DATA_PATH);
+	const rl = readline.createInterface({
+		input: fileStream,
+		crlfDelay: Infinity,
+	});
 	const data: Map<string, Stats> = new Map();
-	for await (const chunk of stream) {
-		const line = decoder.decode(chunk);
+	for await (const line of rl) {
 		const [city, tempStr] = line.split(";");
 		const temp = parseInt(tempStr.replace(".", ""));
 		const oldStats = data.get(city);
