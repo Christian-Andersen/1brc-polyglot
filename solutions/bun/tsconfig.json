@@ -1,0 +1,14 @@
+{
+  "compilerOptions": {
+    "target": "ESNext",
+    "module": "commonjs",
+    "strict": true,
+    "skipLibCheck": true,
+    "types": [
+      "node"
+    ]
+  },
+  "include": [
+    "main.ts"
+  ]
+}

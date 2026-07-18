@@ -1,0 +1,10 @@
+{
+  "scripts": {
+    "build": "tsc",
+    "start": "tsc && node main.js"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.5.4",
+    "typescript": "^7.0.2"
+  }
+}
