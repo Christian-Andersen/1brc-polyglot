@@ -1,5 +1,4 @@
 import concurrent.futures
-import difflib
 import math
 import os
 import shutil
@@ -73,7 +72,7 @@ def format_output(text: str) -> list[str]:
     return sorted(line.strip() for line in stripped.split(", ") if line.strip())
 
 
-def _run_solution(dir: Path, expected: list[str]) -> tuple[str, bool, Panel]:
+def _run_solution(dir: Path, expected: list[str], solution_text: str) -> tuple[str, bool, Panel]:
     lang = dir.name
     try:
         start = time.perf_counter()
@@ -93,28 +92,21 @@ def _run_solution(dir: Path, expected: list[str]) -> tuple[str, bool, Panel]:
 
         actual = format_output(result.stdout)
         if actual != expected:
-            diff_lines = list(
-                difflib.unified_diff(
-                    expected,
-                    actual,
-                    fromfile="data/solution.txt",
-                    tofile=f"{lang}/output",
-                )
-            )
-            colored = []
-            for line in diff_lines:
-                if line.startswith("+++") or line.startswith("---"):
-                    colored.append(f"[bold]{line}[/bold]")
-                elif line.startswith("@@"):
-                    colored.append(f"[cyan]{line}[/cyan]")
-                elif line.startswith("+"):
-                    colored.append(f"[green]{line}[/green]")
-                elif line.startswith("-"):
-                    colored.append(f"[red]{line}[/red]")
-                else:
-                    colored.append(line)
+            raw_lines = [line.strip() for line in result.stdout.strip().strip("{}").split(", ") if line.strip()]
+            exp_lines = [line.strip() for line in solution_text.strip().strip("{}").split(", ") if line.strip()]
+            first_diff = None
+            for i, (e, a) in enumerate(zip(exp_lines, raw_lines)):
+                if e != a:
+                    first_diff = i
+                    break
+            if first_diff is None and len(raw_lines) != len(exp_lines):
+                first_diff = min(len(exp_lines), len(raw_lines))
+
+            detail = f"expected {len(exp_lines)} lines, got {len(raw_lines)}"
+            if first_diff is not None:
+                detail += f"\nfirst diff at line {first_diff + 1}:\n  expected: [red]{exp_lines[first_diff]}[/red]\n  actual:   [green]{raw_lines[first_diff]}[/green]"
             return lang, False, Panel(
-                f"[bold red]has differences[/bold red]\n{''.join(colored)}",
+                f"[bold red]has differences[/bold red]\n{detail}",
                 title=f"[red]{lang}[/red]",
                 border_style="red",
             )
@@ -144,7 +136,7 @@ def run_all() -> bool:
     if PARALLEL:
         all_ok = True
         with concurrent.futures.ThreadPoolExecutor() as pool:
-            futures = {pool.submit(_run_solution, d, expected): d for d in dirs}
+            futures = {pool.submit(_run_solution, d, expected, solution_text): d for d in dirs}
             for future in concurrent.futures.as_completed(futures):
                 lang, ok, panel = future.result()
                 with print_lock:
@@ -153,7 +145,7 @@ def run_all() -> bool:
                     all_ok = False
         return all_ok
     else:
-        results = [_run_solution(d, expected) for d in dirs]
+        results = [_run_solution(d, expected, solution_text) for d in dirs]
 
     all_ok = True
     for lang, ok, panel in results:
