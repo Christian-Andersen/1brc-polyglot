@@ -1,5 +1,5 @@
-import readline from "node:readline";
 import fs from "node:fs";
+import readline from "node:readline";
 
 const DATA_PATH = "../../data/measurements.txt";
 
@@ -23,7 +23,7 @@ async function main(): Promise<void> {
 	const data: Map<string, Stats> = new Map();
 	for await (const line of rl) {
 		const [city, tempStr] = line.split(";");
-		const temp = parseInt(tempStr.replace(".", ""));
+		const temp = parseInt(tempStr.replace(".", ""), 10);
 		const oldStats = data.get(city);
 		if (oldStats) {
 			data.set(city, {
@@ -42,7 +42,7 @@ async function main(): Promise<void> {
 	)) {
 		output += `${city}=${round_toward_positive(stats.min)}/${round_toward_positive(stats.total / stats.count)}/${round_toward_positive(stats.max)}, `;
 	}
-	output = output.slice(0, -2) + "}";
+	output = `${output.slice(0, -2)}}`;
 	console.log(output);
 }
 

@@ -1,9 +1,11 @@
+import concurrent.futures
 import difflib
 import math
 import os
 import shutil
 import subprocess
 import sys
+import threading
 import time
 from pathlib import Path
 
@@ -18,6 +20,8 @@ DATA_DIR = ROOT / "data"
 console = Console()
 
 N_POWER = int(os.environ.get("N_POWER", "9"))
+PARALLEL = os.environ.get("PARALLEL", "0") == "1"
+print_lock = threading.Lock()
 
 
 def ensure_data():
@@ -69,83 +73,92 @@ def format_output(text: str) -> list[str]:
     return sorted(line.strip() for line in stripped.split(", ") if line.strip())
 
 
+def _run_solution(dir: Path, expected: list[str]) -> tuple[str, bool, Panel]:
+    lang = dir.name
+    try:
+        start = time.perf_counter()
+        result = subprocess.run(
+            ["just", "run"],
+            cwd=dir,
+            capture_output=True,
+            text=True,
+        )
+        elapsed = time.perf_counter() - start
+        if result.returncode != 0:
+            return lang, False, Panel(
+                f"[bold red]crashed (Exit Code: {result.returncode})[/bold red]\n{result.stderr}",
+                title=f"[red]{lang}[/red]",
+                border_style="red",
+            )
+
+        actual = format_output(result.stdout)
+        if actual != expected:
+            diff_lines = list(
+                difflib.unified_diff(
+                    expected,
+                    actual,
+                    fromfile="data/solution.txt",
+                    tofile=f"{lang}/output",
+                )
+            )
+            colored = []
+            for line in diff_lines:
+                if line.startswith("+++") or line.startswith("---"):
+                    colored.append(f"[bold]{line}[/bold]")
+                elif line.startswith("@@"):
+                    colored.append(f"[cyan]{line}[/cyan]")
+                elif line.startswith("+"):
+                    colored.append(f"[green]{line}[/green]")
+                elif line.startswith("-"):
+                    colored.append(f"[red]{line}[/red]")
+                else:
+                    colored.append(line)
+            return lang, False, Panel(
+                f"[bold red]has differences[/bold red]\n{''.join(colored)}",
+                title=f"[red]{lang}[/red]",
+                border_style="red",
+            )
+        return lang, True, Panel(
+            f"[bold green]OK - {elapsed:.3f}s[/bold green]",
+            title=f"[green]{lang}[/green]",
+            border_style="green",
+        )
+    except Exception as e:
+        return lang, False, Panel(
+            f"[bold red]error: {e}[/bold red]",
+            title=f"[red]{lang}[/red]",
+            border_style="red",
+        )
+
+
 def run_all() -> bool:
     ensure_data()
 
     solution_text = (DATA_DIR / "solution.txt").read_text()
     expected = format_output(solution_text)
 
-    all_ok = True
-    for dir in sorted(SOLUTIONS_DIR.iterdir()):
-        if not dir.is_dir():
-            continue
-        lang = dir.name
-        try:
-            start = time.perf_counter()
-            result = subprocess.run(
-                ["just", "run"],
-                cwd=dir,
-                capture_output=True,
-                text=True,
-            )
-            elapsed = time.perf_counter() - start
-            if result.returncode != 0:
-                console.print(
-                    Panel(
-                        f"[bold red]crashed (Exit Code: {result.returncode})[/bold red]\n{result.stderr}",
-                        title=f"[red]{lang}[/red]",
-                        border_style="red",
-                    )
-                )
-                all_ok = False
-                continue
+    dirs = sorted(d for d in SOLUTIONS_DIR.iterdir() if d.is_dir())
 
-            actual = format_output(result.stdout)
-            if actual != expected:
-                diff_lines = list(
-                    difflib.unified_diff(
-                        expected,
-                        actual,
-                        fromfile="data/solution.txt",
-                        tofile=f"{lang}/output",
-                    )
-                )
-                colored = []
-                for line in diff_lines:
-                    if line.startswith("+++") or line.startswith("---"):
-                        colored.append(f"[bold]{line}[/bold]")
-                    elif line.startswith("@@"):
-                        colored.append(f"[cyan]{line}[/cyan]")
-                    elif line.startswith("+"):
-                        colored.append(f"[green]{line}[/green]")
-                    elif line.startswith("-"):
-                        colored.append(f"[red]{line}[/red]")
-                    else:
-                        colored.append(line)
-                console.print(
-                    Panel(
-                        f"[bold red]has differences[/bold red]\n{''.join(colored)}",
-                        title=f"[red]{lang}[/red]",
-                        border_style="red",
-                    )
-                )
-                all_ok = False
-            else:
-                console.print(
-                    Panel(
-                        f"[bold green]OK - {elapsed:.3f}s[/bold green]",
-                        title=f"[green]{lang}[/green]",
-                        border_style="green",
-                    )
-                )
-        except Exception as e:
-            console.print(
-                Panel(
-                    f"[bold red]error: {e}[/bold red]",
-                    title=f"[red]{lang}[/red]",
-                    border_style="red",
-                )
-            )
+    console.print(f"[cyan]Running {len(dirs)} solutions (N_POWER={N_POWER}, {10**N_POWER:,} rows)...[/cyan]")
+
+    if PARALLEL:
+        all_ok = True
+        with concurrent.futures.ThreadPoolExecutor() as pool:
+            futures = {pool.submit(_run_solution, d, expected): d for d in dirs}
+            for future in concurrent.futures.as_completed(futures):
+                lang, ok, panel = future.result()
+                with print_lock:
+                    console.print(panel)
+                if not ok:
+                    all_ok = False
+        return all_ok
+    else:
+        results = [_run_solution(d, expected) for d in dirs]
+
+    all_ok = True
+    for lang, ok, panel in results:
+        console.print(panel)
+        if not ok:
             all_ok = False
     return all_ok
 
@@ -212,7 +225,7 @@ def data():
 def sweep():
     global N_POWER
     for power in range(1, 10):
-        console.print(f"\n[bold cyan]=== N_POWER={power} ({10**power} rows) ===[/bold cyan]")
+        console.print(f"\n[bold cyan]=== N_POWER={power} ({10**power:,} rows) ===[/bold cyan]")
         N_POWER = power
         if not run_all():
             console.print(f"[bold red]FAILED at N_POWER={power}, aborting.[/bold red]")
