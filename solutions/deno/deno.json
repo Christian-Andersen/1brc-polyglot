@@ -1,0 +1,16 @@
+{
+	"tasks": {
+		"start": "deno run --allow-read main.ts"
+	},
+	"lint": {
+		"rules": {
+			"tags": ["recommended"]
+		}
+	},
+	"fmt": {
+		"options": {
+			"useTabs": true,
+			"lineWidth": 120
+		}
+	}
+}

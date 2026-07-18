@@ -11,4 +11,4 @@ check:
     prek run --all-files
 
 run:
-    bun run main.ts
+    deno run --allow-read main.ts

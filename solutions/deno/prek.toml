@@ -2,15 +2,22 @@
 repo = "local"
 
 [[repos.hooks]]
-id = "biome-check"
-name = "biome-check"
+id = "fmt"
+name = "fmt"
 language = "system"
 pass_filenames = false
-entry = "bunx @biomejs/biome check main.ts"
+entry = "deno fmt --check main.ts"
 
 [[repos.hooks]]
-id = "tsc"
-name = "tsc"
+id = "lint"
+name = "lint"
 language = "system"
 pass_filenames = false
-entry = "bunx tsc --noEmit"
+entry = "deno lint main.ts"
+
+[[repos.hooks]]
+id = "check"
+name = "check"
+language = "system"
+pass_filenames = false
+entry = "deno check main.ts"

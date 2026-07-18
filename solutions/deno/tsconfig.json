@@ -1,9 +1,8 @@
 {
-  "compilerOptions": {
-    "target": "ESNext",
-    "module": "preserve",
-    "strict": true,
-    "types": ["bun-types"]
-  },
-  "include": ["main.ts"]
+	"compilerOptions": {
+		"target": "ESNext",
+		"module": "preserve",
+		"strict": true
+	},
+	"include": ["main.ts"]
 }
