@@ -17,6 +17,9 @@
         just
         jdk21
         pythonWithRich
+        nodejs
+        bun
+        uv
       ];
     };
   };

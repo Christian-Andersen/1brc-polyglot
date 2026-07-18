@@ -1,14 +1,9 @@
 {
   "compilerOptions": {
     "target": "ESNext",
-    "module": "commonjs",
+    "module": "preserve",
     "strict": true,
-    "skipLibCheck": true,
-    "types": [
-      "node"
-    ]
+    "types": ["bun-types"]
   },
-  "include": [
-    "main.ts"
-  ]
+  "include": ["main.ts"]
 }

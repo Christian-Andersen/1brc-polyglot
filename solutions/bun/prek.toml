@@ -6,11 +6,11 @@ id = "biome-check"
 name = "biome-check"
 language = "system"
 pass_filenames = false
-entry = "npx --no-install @biomejs/biome check main.ts"
+entry = "bunx @biomejs/biome check main.ts"
 
 [[repos.hooks]]
 id = "tsc"
 name = "tsc"
 language = "system"
 pass_filenames = false
-entry = "npx --no-install tsc --noEmit"
+entry = "bunx tsc --noEmit"

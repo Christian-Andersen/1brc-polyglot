@@ -11,4 +11,4 @@ check:
     prek run --all-files
 
 run:
-    npm start --silent
+    bun run main.ts
