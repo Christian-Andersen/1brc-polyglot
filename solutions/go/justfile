@@ -1,0 +1,14 @@
+set dotenv-load
+
+alias c := check
+alias r := run
+
+[private]
+default:
+    @just --choose
+
+check:
+    prek run --all-files
+
+run:
+    go run main.go
