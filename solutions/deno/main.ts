@@ -36,11 +36,11 @@ async function main(): Promise<void> {
 			data.set(city, { min: temp, max: temp, total: temp, count: 1 });
 		}
 	}
-	var output = "{";
-	for (const [city, stats] of [...data.entries()].sort((a, b) =>
-		a[0].localeCompare(b[0]),
-	)) {
-		output += `${city}=${round_toward_positive(stats.min)}/${round_toward_positive(stats.total / stats.count)}/${round_toward_positive(stats.max)}, `;
+	let output = "{";
+	for (const [city, stats] of [...data.entries()].sort((a, b) => a[0].localeCompare(b[0]))) {
+		output += `${city}=${round_toward_positive(stats.min)}/${round_toward_positive(stats.total / stats.count)}/${
+			round_toward_positive(stats.max)
+		}, `;
 	}
 	output = `${output.slice(0, -2)}}`;
 	console.log(output);
