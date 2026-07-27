@@ -20,6 +20,7 @@
         nodejs
         bun
         uv
+        typescript
       ];
     };
   };
