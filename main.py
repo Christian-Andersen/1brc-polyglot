@@ -19,7 +19,7 @@ DATA_DIR = ROOT / "data"
 console = Console()
 
 N_POWER = int(os.environ.get("N_POWER", "9"))
-PARALLEL = os.environ.get("PARALLEL", "0") == "1"
+PARALLEL = os.environ.get("PARALLEL", "1") == "1"
 print_lock = threading.Lock()
 
 
