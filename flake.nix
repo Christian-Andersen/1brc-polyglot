@@ -1,5 +1,5 @@
 {
-  description = "Python development environment";
+  description = "Development environment";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
@@ -17,14 +17,10 @@
         just
         jdk21
         pythonWithRich
+        pypy311
         nodejs
         bun
-        uv
         typescript
-        pypy311
-        python314
-        ruff
-        ty
         rustfmt
         luajit
         stylua
