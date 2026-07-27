@@ -7,27 +7,22 @@ alias r := run
 default:
     @just --list
 
-[private]
-@bootstrap:
-    (cd solutions/bun && [ -d "node_modules" ] || bun install --frozen-lockfile)
-    (cd solutions/nodejs && [ -d "node_modules" ] || npm ci --no-fund)
-
 # lint/format all project files
-check: bootstrap
+check:
     prek run --all-files
 
 # run all solutions against current data
-run: bootstrap
+run:
     python main.py run
 
 # benchmark all solutions (optional: warmup iterations)
-benchmark *ARGS: bootstrap
+benchmark *ARGS:
     python main.py benchmark {{ ARGS }}
 
 # generate measurement data if missing
-data: bootstrap
+data:
     python main.py data
 
 # run all solutions at ascending N_POWER levels
-sweep: bootstrap
+sweep:
     python main.py sweep

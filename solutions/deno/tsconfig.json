@@ -1,8 +1,0 @@
-{
-	"compilerOptions": {
-		"target": "ESNext",
-		"module": "preserve",
-		"strict": true
-	},
-	"include": ["main.ts"]
-}
