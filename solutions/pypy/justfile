@@ -11,4 +11,4 @@ check:
     uvx prek@latest run --all-files
 
 run *args:
-    python main.py {{ args }}
+    pypy3 main.py {{ args }}
