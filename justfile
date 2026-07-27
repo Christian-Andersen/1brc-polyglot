@@ -7,6 +7,7 @@ alias r := run
 default:
     @just --list
 
+[private]
 @bootstrap:
     (cd solutions/bun && [ -d "node_modules" ] || bun install --frozen-lockfile)
     (cd solutions/nodejs && [ -d "node_modules" ] || npm ci --no-fund)
