@@ -6,7 +6,9 @@ import subprocess
 import sys
 import threading
 import time
+from contextlib import nullcontext
 from pathlib import Path
+from typing import NamedTuple
 
 from rich.console import Console
 from rich.panel import Panel
@@ -72,7 +74,21 @@ def format_output(text: str) -> list[str]:
     return sorted(line.strip() for line in stripped.split(", ") if line.strip())
 
 
-def _run_solution(dir: Path, expected: list[str], solution_text: str) -> tuple[str, bool, Panel]:
+class SolutionResult(NamedTuple):
+    lang: str
+    elapsed: float | None
+    ok: bool
+    panel: Panel
+
+
+class BenchmarkStats(NamedTuple):
+    min: float
+    max: float
+    mean: float
+    stddev: float
+
+
+def _run_solution(dir: Path, expected: list[str], solution_text: str) -> SolutionResult:
     lang = dir.name
     try:
         start = time.perf_counter()
@@ -84,11 +100,11 @@ def _run_solution(dir: Path, expected: list[str], solution_text: str) -> tuple[s
         )
         elapsed = time.perf_counter() - start
         if result.returncode != 0:
-            return lang, False, Panel(
+            return SolutionResult(lang, elapsed, False, Panel(
                 f"[bold red]crashed (Exit Code: {result.returncode})[/bold red]\n{result.stderr}",
                 title=f"[red]{lang}[/red]",
                 border_style="red",
-            )
+            ))
 
         actual = format_output(result.stdout)
         if actual != expected:
@@ -105,22 +121,22 @@ def _run_solution(dir: Path, expected: list[str], solution_text: str) -> tuple[s
             detail = f"expected {len(exp_lines)} lines, got {len(raw_lines)}"
             if first_diff is not None:
                 detail += f"\nfirst diff at line {first_diff + 1}:\n  expected: [red]{exp_lines[first_diff]}[/red]\n  actual:   [green]{raw_lines[first_diff]}[/green]"
-            return lang, False, Panel(
+            return SolutionResult(lang, elapsed, False, Panel(
                 f"[bold red]has differences[/bold red]\n{detail}",
                 title=f"[red]{lang}[/red]",
                 border_style="red",
-            )
-        return lang, True, Panel(
+            ))
+        return SolutionResult(lang, elapsed, True, Panel(
             f"[bold green]OK - {elapsed:.3f}s[/bold green]",
             title=f"[green]{lang}[/green]",
             border_style="green",
-        )
+        ))
     except Exception as e:
-        return lang, False, Panel(
+        return SolutionResult(lang, None, False, Panel(
             f"[bold red]error: {e}[/bold red]",
             title=f"[red]{lang}[/red]",
             border_style="red",
-        )
+        ))
 
 
 def run_all() -> bool:
@@ -133,26 +149,47 @@ def run_all() -> bool:
 
     console.print(f"[cyan]Running {len(dirs)} solutions (N_POWER={N_POWER}, {10**N_POWER:,} rows)...[/cyan]")
 
+    results: list[SolutionResult] = []
+
     if PARALLEL:
-        all_ok = True
         with concurrent.futures.ThreadPoolExecutor() as pool:
             futures = {pool.submit(_run_solution, d, expected, solution_text): d for d in dirs}
             for future in concurrent.futures.as_completed(futures):
-                lang, ok, panel = future.result()
+                r = future.result()
+                results.append(r)
                 with print_lock:
-                    console.print(panel)
-                if not ok:
-                    all_ok = False
-        return all_ok
+                    console.print(r.panel)
     else:
-        results = [_run_solution(d, expected, solution_text) for d in dirs]
+        for d in dirs:
+            r = _run_solution(d, expected, solution_text)
+            results.append(r)
+            console.print(r.panel)
 
-    all_ok = True
-    for lang, ok, panel in results:
-        console.print(panel)
-        if not ok:
-            all_ok = False
-    return all_ok
+    results.sort(key=lambda x: (x.elapsed if x.elapsed is not None else float("inf"), x.lang))
+
+    table = Table(title="Results Summary")
+    table.add_column("#", justify="right", style="dim")
+    table.add_column("Language", style="cyan")
+    table.add_column("Time", justify="right")
+    table.add_column("Status")
+
+    for i, r in enumerate(results, 1):
+        if r.ok:
+            status = "[green]OK[/green]"
+            time_str = f"{r.elapsed:.3f}s" if r.elapsed is not None else "—"
+        else:
+            status = "[red]FAIL[/red]"
+            time_str = f"{r.elapsed:.3f}s" if r.elapsed is not None else "—"
+        table.add_row(str(i), r.lang, time_str, status)
+
+    console.print()
+    console.print(table)
+
+    errors = [r.lang for r in results if not r.ok]
+    if errors:
+        console.print(f"\n[bold red]Errors in: {', '.join(errors)}[/bold red]")
+
+    return not errors
 
 
 def benchmark(warmup: int, iterations: int):
@@ -165,7 +202,7 @@ def benchmark(warmup: int, iterations: int):
 
     console.print(f"[cyan]Benchmarking {len(dirs)} solutions ({warmup} warmup, {iterations} iterations)...[/cyan]")
 
-    results: dict[str, dict[str, float]] = {}
+    results: dict[str, BenchmarkStats] = {}
 
     for dir in dirs:
         lang = dir.name
@@ -183,12 +220,12 @@ def benchmark(warmup: int, iterations: int):
                 times.append(elapsed)
 
         mean = sum(times) / len(times)
-        results[lang] = {
-            "min": min(times),
-            "max": max(times),
-            "mean": mean,
-            "stddev": (math.sqrt(sum((t - mean) ** 2 for t in times) / len(times)) if len(times) > 1 else 0.0),
-        }
+        results[lang] = BenchmarkStats(
+            min=min(times),
+            max=max(times),
+            mean=mean,
+            stddev=(math.sqrt(sum((t - mean) ** 2 for t in times) / len(times)) if len(times) > 1 else 0.0),
+        )
 
     table = Table(title="Benchmark Results")
     table.add_column("Language", style="cyan")
@@ -197,13 +234,13 @@ def benchmark(warmup: int, iterations: int):
     table.add_column("Max", justify="right")
     table.add_column("Stddev", justify="right")
 
-    for lang, r in sorted(results.items(), key=lambda x: x[1]["mean"]):
+    for lang, r in sorted(results.items(), key=lambda x: x[1].mean):
         table.add_row(
             lang,
-            f"{r['min']:.4f}s",
-            f"{r['mean']:.4f}s",
-            f"{r['max']:.4f}s",
-            f"{r['stddev']:.4f}s",
+            f"{r.min:.4f}s",
+            f"{r.mean:.4f}s",
+            f"{r.max:.4f}s",
+            f"{r.stddev:.4f}s",
         )
 
     console.print(table)
