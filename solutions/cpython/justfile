@@ -1,14 +1,10 @@
-set dotenv-load
-
 alias c := check
 alias r := run
 
-[private]
-default:
-    @just --choose
+default: check run
 
 check:
-    uvx prek@latest run --all-files
+    prek run --all-files
 
-run *args:
-    python main.py {{ args }}
+run:
+    python main.py
