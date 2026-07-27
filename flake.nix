@@ -25,6 +25,7 @@
         python314
         ruff
         ty
+        rustfmt
       ];
     };
   };
