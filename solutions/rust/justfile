@@ -24,7 +24,7 @@ doc *args:
     cargo doc {{ args }}
 
 run *args:
-    cargo run {{ args }}
+    cargo run --release {{ args }}
 
 test *args:
     cargo test {{ args }}
