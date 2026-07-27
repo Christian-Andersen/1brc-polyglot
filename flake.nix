@@ -21,6 +21,10 @@
         bun
         uv
         typescript
+        pypy311
+        python314
+        ruff
+        ty
       ];
     };
   };
