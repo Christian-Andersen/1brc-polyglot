@@ -6,11 +6,11 @@ import subprocess
 import sys
 import threading
 import time
-from contextlib import nullcontext
 from pathlib import Path
 from typing import NamedTuple
 
 from rich.console import Console
+from rich.live import Live
 from rich.panel import Panel
 from rich.table import Table
 
@@ -139,6 +139,23 @@ def _run_solution(dir: Path, expected: list[str], solution_text: str) -> Solutio
         ))
 
 
+def _build_table(results: list[SolutionResult]) -> Table:
+    table = Table(title="Results")
+    table.add_column("#", justify="right", style="dim")
+    table.add_column("Language", style="cyan")
+    table.add_column("Time", justify="right")
+    table.add_column("Status")
+    for i, r in enumerate(results, 1):
+        ok = r.ok
+        table.add_row(
+            str(i),
+            r.lang,
+            f"{r.elapsed:.3f}s" if r.elapsed is not None else "—",
+            "[green]OK[/green]" if ok else "[red]FAIL[/red]",
+        )
+    return table
+
+
 def run_all() -> bool:
     ensure_data()
 
@@ -150,43 +167,29 @@ def run_all() -> bool:
     console.print(f"[cyan]Running {len(dirs)} solutions (N_POWER={N_POWER}, {10**N_POWER:,} rows)...[/cyan]")
 
     results: list[SolutionResult] = []
+    table = _build_table(results)
 
-    if PARALLEL:
-        with concurrent.futures.ThreadPoolExecutor() as pool:
-            futures = {pool.submit(_run_solution, d, expected, solution_text): d for d in dirs}
-            for future in concurrent.futures.as_completed(futures):
-                r = future.result()
-                results.append(r)
-                with print_lock:
-                    console.print(r.panel)
-    else:
-        for d in dirs:
-            r = _run_solution(d, expected, solution_text)
-            results.append(r)
-            console.print(r.panel)
+    def add_result(r: SolutionResult):
+        results.append(r)
+        results.sort(key=lambda x: (x.elapsed if x.elapsed is not None else float("inf"), x.lang))
+        live.update(_build_table(results))
 
-    results.sort(key=lambda x: (x.elapsed if x.elapsed is not None else float("inf"), x.lang))
-
-    table = Table(title="Results Summary")
-    table.add_column("#", justify="right", style="dim")
-    table.add_column("Language", style="cyan")
-    table.add_column("Time", justify="right")
-    table.add_column("Status")
-
-    for i, r in enumerate(results, 1):
-        if r.ok:
-            status = "[green]OK[/green]"
-            time_str = f"{r.elapsed:.3f}s" if r.elapsed is not None else "—"
+    with Live(table, refresh_per_second=10, vertical_overflow="visible") as live:
+        if PARALLEL:
+            with concurrent.futures.ThreadPoolExecutor() as pool:
+                futures = {pool.submit(_run_solution, d, expected, solution_text): d for d in dirs}
+                for future in concurrent.futures.as_completed(futures):
+                    with print_lock:
+                        add_result(future.result())
         else:
-            status = "[red]FAIL[/red]"
-            time_str = f"{r.elapsed:.3f}s" if r.elapsed is not None else "—"
-        table.add_row(str(i), r.lang, time_str, status)
-
-    console.print()
-    console.print(table)
+            for d in dirs:
+                add_result(_run_solution(d, expected, solution_text))
 
     errors = [r.lang for r in results if not r.ok]
     if errors:
+        for r in results:
+            if not r.ok:
+                console.print(r.panel)
         console.print(f"\n[bold red]Errors in: {', '.join(errors)}[/bold red]")
 
     return not errors
