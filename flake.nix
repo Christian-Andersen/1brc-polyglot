@@ -26,6 +26,9 @@
         ruff
         ty
         rustfmt
+        luajit
+        stylua
+        selene
       ];
     };
   };

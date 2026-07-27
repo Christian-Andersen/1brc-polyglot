@@ -1,0 +1,16 @@
+[[repos]]
+repo = "local"
+
+[[repos.hooks]]
+id = "stylua-format"
+name = "stylua-format"
+language = "system"
+pass_filenames = false
+entry = "stylua main.lua"
+
+[[repos.hooks]]
+id = "selene-lint"
+name = "selene-lint"
+language = "system"
+pass_filenames = false
+entry = "selene ."
