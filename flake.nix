@@ -18,10 +18,16 @@
         jdk21
         pythonWithRich
         pypy311
+        ruff
+        ty
         nodejs
         bun
         typescript
+        cargo
+        clippy
         rustfmt
+        go
+        deno
         luajit
         stylua
         selene
