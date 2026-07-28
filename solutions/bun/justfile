@@ -8,3 +8,9 @@ check:
 
 run:
     bun run main.ts
+
+build:
+    bun build --compile main.ts --outfile 1brc
+
+bench:
+    ./1brc

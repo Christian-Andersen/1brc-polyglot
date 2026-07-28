@@ -8,3 +8,9 @@ check:
 
 run:
     pypy3 main.py
+
+build:
+    @echo "nothing to build"
+
+bench:
+    pypy3 main.py

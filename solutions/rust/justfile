@@ -7,4 +7,10 @@ check:
     prek run --all-files
 
 run:
-    cargo run --release
+    cargo run
+
+build:
+    cargo build --release
+
+bench:
+    ./target/release/rust

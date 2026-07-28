@@ -7,4 +7,10 @@ check:
     prek run --all-files
 
 run:
-    zig run -O ReleaseFast main.zig
+    zig run main.zig
+
+build:
+    zig build-exe -O ReleaseFast main.zig
+
+bench:
+    ./main

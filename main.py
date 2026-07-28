@@ -40,7 +40,9 @@ def ensure_data():
     solution_file = solutions_dir / filename
 
     if not measurement_file.exists():
-        console.print(f"[yellow]--> {filename} not found. Generating {rows} measurements...[/yellow]")
+        console.print(
+            f"[yellow]--> {filename} not found. Generating {rows} measurements...[/yellow]"
+        )
         (ROOT / "measurements.txt").unlink(missing_ok=True)
         subprocess.run(
             ["java", str(ROOT / "CreateMeasurements.java"), str(rows)],
@@ -91,25 +93,44 @@ class BenchmarkStats(NamedTuple):
 def _run_solution(dir: Path, expected: list[str], solution_text: str) -> SolutionResult:
     lang = dir.name
     try:
+        subprocess.run(
+            ["just", "build"],
+            cwd=dir,
+            capture_output=True,
+        )
+
         start = time.perf_counter()
         result = subprocess.run(
-            ["just", "run"],
+            ["just", "bench"],
             cwd=dir,
             capture_output=True,
             text=True,
         )
         elapsed = time.perf_counter() - start
         if result.returncode != 0:
-            return SolutionResult(lang, elapsed, False, Panel(
-                f"[bold red]crashed (Exit Code: {result.returncode})[/bold red]\n{result.stderr}",
-                title=f"[red]{lang}[/red]",
-                border_style="red",
-            ))
+            return SolutionResult(
+                lang,
+                elapsed,
+                False,
+                Panel(
+                    f"[bold red]crashed (Exit Code: {result.returncode})[/bold red]\n{result.stderr}",
+                    title=f"[red]{lang}[/red]",
+                    border_style="red",
+                ),
+            )
 
         actual = format_output(result.stdout)
         if actual != expected:
-            raw_lines = [line.strip() for line in result.stdout.strip().strip("{}").split(", ") if line.strip()]
-            exp_lines = [line.strip() for line in solution_text.strip().strip("{}").split(", ") if line.strip()]
+            raw_lines = [
+                line.strip()
+                for line in result.stdout.strip().strip("{}").split(", ")
+                if line.strip()
+            ]
+            exp_lines = [
+                line.strip()
+                for line in solution_text.strip().strip("{}").split(", ")
+                if line.strip()
+            ]
             first_diff = None
             for i, (e, a) in enumerate(zip(exp_lines, raw_lines)):
                 if e != a:
@@ -121,22 +142,37 @@ def _run_solution(dir: Path, expected: list[str], solution_text: str) -> Solutio
             detail = f"expected {len(exp_lines)} lines, got {len(raw_lines)}"
             if first_diff is not None:
                 detail += f"\nfirst diff at line {first_diff + 1}:\n  expected: [red]{exp_lines[first_diff]}[/red]\n  actual:   [green]{raw_lines[first_diff]}[/green]"
-            return SolutionResult(lang, elapsed, False, Panel(
-                f"[bold red]has differences[/bold red]\n{detail}",
+            return SolutionResult(
+                lang,
+                elapsed,
+                False,
+                Panel(
+                    f"[bold red]has differences[/bold red]\n{detail}",
+                    title=f"[red]{lang}[/red]",
+                    border_style="red",
+                ),
+            )
+        return SolutionResult(
+            lang,
+            elapsed,
+            True,
+            Panel(
+                f"[bold green]OK - {elapsed:.3f}s[/bold green]",
+                title=f"[green]{lang}[/green]",
+                border_style="green",
+            ),
+        )
+    except Exception as e:
+        return SolutionResult(
+            lang,
+            None,
+            False,
+            Panel(
+                f"[bold red]error: {e}[/bold red]",
                 title=f"[red]{lang}[/red]",
                 border_style="red",
-            ))
-        return SolutionResult(lang, elapsed, True, Panel(
-            f"[bold green]OK - {elapsed:.3f}s[/bold green]",
-            title=f"[green]{lang}[/green]",
-            border_style="green",
-        ))
-    except Exception as e:
-        return SolutionResult(lang, None, False, Panel(
-            f"[bold red]error: {e}[/bold red]",
-            title=f"[red]{lang}[/red]",
-            border_style="red",
-        ))
+            ),
+        )
 
 
 def _build_table(results: list[SolutionResult]) -> Table:
@@ -164,20 +200,27 @@ def run_all() -> bool:
 
     dirs = sorted(d for d in SOLUTIONS_DIR.iterdir() if d.is_dir())
 
-    console.print(f"[cyan]Running {len(dirs)} solutions (N_POWER={N_POWER}, {10**N_POWER:,} rows)...[/cyan]")
+    console.print(
+        f"[cyan]Running {len(dirs)} solutions (N_POWER={N_POWER}, {10**N_POWER:,} rows)...[/cyan]"
+    )
 
     results: list[SolutionResult] = []
     table = _build_table(results)
 
     def add_result(r: SolutionResult):
         results.append(r)
-        results.sort(key=lambda x: (x.elapsed if x.elapsed is not None else float("inf"), x.lang))
+        results.sort(
+            key=lambda x: (x.elapsed if x.elapsed is not None else float("inf"), x.lang)
+        )
         live.update(_build_table(results))
 
     with Live(table, refresh_per_second=10, vertical_overflow="visible") as live:
         if PARALLEL:
             with concurrent.futures.ThreadPoolExecutor() as pool:
-                futures = {pool.submit(_run_solution, d, expected, solution_text): d for d in dirs}
+                futures = {
+                    pool.submit(_run_solution, d, expected, solution_text): d
+                    for d in dirs
+                }
                 for future in concurrent.futures.as_completed(futures):
                     with print_lock:
                         add_result(future.result())
@@ -203,18 +246,26 @@ def benchmark(warmup: int, iterations: int):
         console.print("[red]No solution directories found.[/red]")
         return
 
-    console.print(f"[cyan]Benchmarking {len(dirs)} solutions ({warmup} warmup, {iterations} iterations)...[/cyan]")
+    console.print(
+        f"[cyan]Benchmarking {len(dirs)} solutions (N_POWER={N_POWER}, {10**N_POWER:,} rows, {warmup} warmup, {iterations} iterations)...[/cyan]"
+    )
 
     results: dict[str, BenchmarkStats] = {}
 
-    for dir in dirs:
+    def _bench_solution(dir: Path) -> tuple[str, BenchmarkStats]:
         lang = dir.name
         times: list[float] = []
+
+        subprocess.run(
+            ["just", "build"],
+            cwd=dir,
+            capture_output=True,
+        )
 
         for i in range(warmup + iterations):
             start = time.perf_counter()
             subprocess.run(
-                ["just", "run"],
+                ["just", "bench"],
                 cwd=dir,
                 capture_output=True,
             )
@@ -223,12 +274,27 @@ def benchmark(warmup: int, iterations: int):
                 times.append(elapsed)
 
         mean = sum(times) / len(times)
-        results[lang] = BenchmarkStats(
+        return lang, BenchmarkStats(
             min=min(times),
             max=max(times),
             mean=mean,
-            stddev=(math.sqrt(sum((t - mean) ** 2 for t in times) / len(times)) if len(times) > 1 else 0.0),
+            stddev=(
+                math.sqrt(sum((t - mean) ** 2 for t in times) / len(times))
+                if len(times) > 1
+                else 0.0
+            ),
         )
+
+    if PARALLEL:
+        with concurrent.futures.ThreadPoolExecutor() as pool:
+            futures = {pool.submit(_bench_solution, d): d for d in dirs}
+            for future in concurrent.futures.as_completed(futures):
+                lang, stats = future.result()
+                results[lang] = stats
+    else:
+        for d in dirs:
+            lang, stats = _bench_solution(d)
+            results[lang] = stats
 
     table = Table(title="Benchmark Results")
     table.add_column("Language", style="cyan")
@@ -257,7 +323,9 @@ def data():
 def sweep():
     global N_POWER
     for power in range(1, 10):
-        console.print(f"\n[bold cyan]=== N_POWER={power} ({10**power:,} rows) ===[/bold cyan]")
+        console.print(
+            f"\n[bold cyan]=== N_POWER={power} ({10**power:,} rows) ===[/bold cyan]"
+        )
         N_POWER = power
         if not run_all():
             console.print(f"[bold red]FAILED at N_POWER={power}, aborting.[/bold red]")

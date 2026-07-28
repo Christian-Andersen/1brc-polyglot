@@ -8,3 +8,9 @@ check:
 
 run:
     lua main.lua
+
+build:
+    luajit -b main.lua main.luac
+
+bench:
+    luajit main.luac

@@ -8,3 +8,9 @@ check:
 
 run:
     npx --yes tsx main.ts
+
+build:
+    @echo "nothing to build"
+
+bench:
+    npx --yes tsx main.ts

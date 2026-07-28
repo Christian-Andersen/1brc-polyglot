@@ -8,3 +8,9 @@ check:
 
 run:
     go run main.go
+
+build:
+    go build -o 1brc main.go
+
+bench:
+    ./1brc

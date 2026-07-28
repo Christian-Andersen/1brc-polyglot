@@ -8,3 +8,9 @@ check:
 
 run:
     deno run --allow-read main.ts
+
+build:
+    deno compile --allow-read -o 1brc main.ts
+
+bench:
+    ./1brc
