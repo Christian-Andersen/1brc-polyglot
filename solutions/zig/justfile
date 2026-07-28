@@ -1,0 +1,10 @@
+alias c := check
+alias r := run
+
+default: check run
+
+check:
+    prek run --all-files
+
+run:
+    zig run -O ReleaseFast main.zig

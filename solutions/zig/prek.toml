@@ -1,0 +1,9 @@
+[[repos]]
+repo = "local"
+
+[[repos.hooks]]
+id = "zig-fmt"
+name = "zig-fmt"
+language = "system"
+pass_filenames = false
+entry = "zig fmt ."

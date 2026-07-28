@@ -31,6 +31,7 @@
         luajit
         stylua
         selene
+        zig
       ];
     };
   };
