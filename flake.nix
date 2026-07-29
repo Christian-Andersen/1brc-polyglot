@@ -29,6 +29,10 @@
         stylua
         selene
         zig
+        ruby
+        dart
+        crystal
+        dotnet-sdk
       ];
     };
   };
