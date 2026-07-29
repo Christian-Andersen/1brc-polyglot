@@ -18,3 +18,30 @@ hooks = [
   { id = "check-illegal-windows-names" },
   { id = "check-shebang-scripts-are-executable" }
 ]
+
+[[repos]]
+repo = "local"
+
+[[repos.hooks]]
+id = "ruff-check"
+name = "ruff-check"
+language = "system"
+pass_filenames = false
+files = "^[^/]+\\.py$"
+entry = "ruff check --fix"
+
+[[repos.hooks]]
+id = "ruff-format"
+name = "ruff-format"
+language = "system"
+pass_filenames = false
+files = "^[^/]+\\.py$"
+entry = "ruff format"
+
+[[repos.hooks]]
+id = "ty-check"
+name = "ty-check"
+language = "system"
+pass_filenames = false
+files = "^[^/]+\\.py$"
+entry = "ty check"

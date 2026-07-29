@@ -214,7 +214,8 @@ def run_all() -> bool:
     expected_lines = solution_text.rstrip("\n").split("\n")
 
     dirs = sorted(
-        d for d in SOLUTIONS_DIR.iterdir()
+        d
+        for d in SOLUTIONS_DIR.iterdir()
         if d.is_dir() and not d.name.startswith(".") and (d / "justfile").exists()
     )
 
@@ -229,7 +230,10 @@ def run_all() -> bool:
     def add_result(r: SolutionResult) -> None:
         results.append(r)
         results.sort(
-            key=lambda x: (x.elapsed if x.elapsed is not None else float("inf"), x.lang),
+            key=lambda x: (
+                x.elapsed if x.elapsed is not None else float("inf"),
+                x.lang,
+            ),
         )
         live.update(_build_table(results))
 
@@ -262,7 +266,8 @@ def benchmark(warmup: int, iterations: int) -> None:
     ensure_data()
 
     dirs = sorted(
-        d for d in SOLUTIONS_DIR.iterdir()
+        d
+        for d in SOLUTIONS_DIR.iterdir()
         if d.is_dir() and not d.name.startswith(".") and (d / "justfile").exists()
     )
     if not dirs:
@@ -281,7 +286,9 @@ def benchmark(warmup: int, iterations: int) -> None:
         with concurrent.futures.ProcessPoolExecutor(
             max_workers=len(dirs),
         ) as pool:
-            futures = {pool.submit(_bench_solution, d, warmup, iterations): d for d in dirs}
+            futures = {
+                pool.submit(_bench_solution, d, warmup, iterations): d for d in dirs
+            }
             for future in concurrent.futures.as_completed(futures):
                 lang, stats = future.result()
                 results[lang] = stats
@@ -309,7 +316,9 @@ def benchmark(warmup: int, iterations: int) -> None:
     console.print(table)
 
 
-def _bench_solution(dir: Path, warmup: int, iterations: int) -> tuple[str, BenchmarkStats]:
+def _bench_solution(
+    dir: Path, warmup: int, iterations: int
+) -> tuple[str, BenchmarkStats]:
     lang = dir.name
     times: list[float] = []
 
