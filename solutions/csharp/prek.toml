@@ -1,0 +1,9 @@
+[[repos]]
+repo = "local"
+
+[[repos.hooks]]
+id = "dotnet-build"
+name = "dotnet-build"
+language = "system"
+pass_filenames = false
+entry = "dotnet build"

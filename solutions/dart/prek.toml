@@ -1,0 +1,9 @@
+[[repos]]
+repo = "local"
+
+[[repos.hooks]]
+id = "dart-analyze"
+name = "dart-analyze"
+language = "system"
+pass_filenames = false
+entry = "dart analyze main.dart"

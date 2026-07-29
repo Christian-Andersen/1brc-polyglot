@@ -1,0 +1,9 @@
+[[repos]]
+repo = "local"
+
+[[repos.hooks]]
+id = "javac-check"
+name = "javac-check"
+language = "system"
+pass_filenames = false
+entry = "javac Main.java"

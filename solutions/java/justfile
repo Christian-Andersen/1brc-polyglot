@@ -1,0 +1,16 @@
+alias c := check
+alias r := run
+
+default: check run
+
+check:
+    prek run --all-files
+
+run:
+    java Main.java
+
+build:
+    javac Main.java
+
+bench:
+    java Main

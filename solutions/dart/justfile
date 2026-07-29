@@ -1,0 +1,16 @@
+alias c := check
+alias r := run
+
+default: check run
+
+check:
+    prek run --all-files
+
+run:
+    dart run main.dart
+
+build:
+    dart compile exe main.dart -o main
+
+bench:
+    ./main

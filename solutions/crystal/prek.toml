@@ -1,0 +1,9 @@
+[[repos]]
+repo = "local"
+
+[[repos.hooks]]
+id = "crystal-format"
+name = "crystal-format"
+language = "system"
+pass_filenames = false
+entry = "crystal tool format --check main.cr"
