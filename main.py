@@ -93,11 +93,23 @@ class BenchmarkStats(NamedTuple):
 def _run_solution(dir: Path, expected_lines: list[str]) -> SolutionResult:
     lang = dir.name
     try:
-        subprocess.run(
+        build_result = subprocess.run(
             ["just", "build"],
             cwd=dir,
             capture_output=True,
+            text=True,
         )
+        if build_result.returncode != 0:
+            return SolutionResult(
+                lang,
+                None,
+                False,
+                Panel(
+                    f"[bold red]build failed (Exit Code: {build_result.returncode})[/bold red]\n{build_result.stderr}",
+                    title=f"[red]{lang}[/red]",
+                    border_style="red",
+                ),
+            )
 
         start = time.perf_counter()
         result = subprocess.run(
@@ -201,7 +213,10 @@ def run_all() -> bool:
     solution_text = (DATA_DIR / "solution.tsv").read_text()
     expected_lines = solution_text.rstrip("\n").split("\n")
 
-    dirs = sorted(d for d in SOLUTIONS_DIR.iterdir() if d.is_dir())
+    dirs = sorted(
+        d for d in SOLUTIONS_DIR.iterdir()
+        if d.is_dir() and not d.name.startswith(".") and (d / "justfile").exists()
+    )
 
     console.print(
         f"[cyan]Running {len(dirs)} solutions "
@@ -246,7 +261,10 @@ def run_all() -> bool:
 def benchmark(warmup: int, iterations: int) -> None:
     ensure_data()
 
-    dirs = sorted(d for d in SOLUTIONS_DIR.iterdir() if d.is_dir())
+    dirs = sorted(
+        d for d in SOLUTIONS_DIR.iterdir()
+        if d.is_dir() and not d.name.startswith(".") and (d / "justfile").exists()
+    )
     if not dirs:
         console.print("[red]No solution directories found.[/red]")
         return
@@ -258,6 +276,38 @@ def benchmark(warmup: int, iterations: int) -> None:
     )
 
     results: dict[str, BenchmarkStats] = {}
+
+    if PARALLEL:
+        with concurrent.futures.ProcessPoolExecutor(
+            max_workers=len(dirs),
+        ) as pool:
+            futures = {pool.submit(_bench_solution, d, warmup, iterations): d for d in dirs}
+            for future in concurrent.futures.as_completed(futures):
+                lang, stats = future.result()
+                results[lang] = stats
+    else:
+        for d in dirs:
+            lang, stats = _bench_solution(d, warmup, iterations)
+            results[lang] = stats
+
+    table = Table(title="Benchmark Results")
+    table.add_column("Language", style="cyan")
+    table.add_column("Min", justify="right")
+    table.add_column("Mean", justify="right")
+    table.add_column("Max", justify="right")
+    table.add_column("Stddev", justify="right")
+
+    for lang, r in sorted(results.items(), key=lambda x: x[1].mean):
+        table.add_row(
+            lang,
+            f"{r.min:.4f}s",
+            f"{r.mean:.4f}s",
+            f"{r.max:.4f}s",
+            f"{r.stddev:.4f}s",
+        )
+
+    console.print(table)
+
 
 def _bench_solution(dir: Path, warmup: int, iterations: int) -> tuple[str, BenchmarkStats]:
     lang = dir.name
@@ -291,37 +341,6 @@ def _bench_solution(dir: Path, warmup: int, iterations: int) -> tuple[str, Bench
             else 0.0
         ),
     )
-
-    if PARALLEL:
-        with concurrent.futures.ProcessPoolExecutor(
-            max_workers=len(dirs),
-        ) as pool:
-            futures = {pool.submit(_bench_solution, d, warmup, iterations): d for d in dirs}
-            for future in concurrent.futures.as_completed(futures):
-                lang, stats = future.result()
-                results[lang] = stats
-    else:
-        for d in dirs:
-            lang, stats = _bench_solution(d, warmup, iterations)
-            results[lang] = stats
-
-    table = Table(title="Benchmark Results")
-    table.add_column("Language", style="cyan")
-    table.add_column("Min", justify="right")
-    table.add_column("Mean", justify="right")
-    table.add_column("Max", justify="right")
-    table.add_column("Stddev", justify="right")
-
-    for lang, r in sorted(results.items(), key=lambda x: x[1].mean):
-        table.add_row(
-            lang,
-            f"{r.min:.4f}s",
-            f"{r.mean:.4f}s",
-            f"{r.max:.4f}s",
-            f"{r.stddev:.4f}s",
-        )
-
-    console.print(table)
 
 
 def data() -> None:
