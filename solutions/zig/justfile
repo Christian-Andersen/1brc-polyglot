@@ -10,7 +10,7 @@ run:
     zig run main.zig
 
 build:
-    zig build-exe -O ReleaseFast main.zig
+    zig build -Drelease=true
 
 bench:
-    ./main
+    ./zig-out/bin/main

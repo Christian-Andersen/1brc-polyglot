@@ -7,3 +7,10 @@ name = "zig-fmt"
 language = "system"
 pass_filenames = false
 entry = "zig fmt ."
+
+[[repos.hooks]]
+id = "zig-check"
+name = "zig-check"
+language = "system"
+pass_filenames = false
+entry = "zig build check"
