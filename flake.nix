@@ -13,7 +13,7 @@
         prek
         just
         jdk21
-        (python314.withPackages (p: [p.rich]))
+        (python314.withPackages (p: [p.rich p.polars p.numpy]))
         pypy311
         ruff
         ty

@@ -40,40 +40,34 @@ def ensure_data():
     solution_file = solutions_dir / filename
 
     if not measurement_file.exists():
-        console.print(
-            f"[yellow]--> {filename} not found. Generating {rows} measurements...[/yellow]"
-        )
-        (ROOT / "measurements.txt").unlink(missing_ok=True)
+        console.print(f"[yellow]--> {filename} not found. Generating {rows:,} measurements...[/yellow]")
         subprocess.run(
-            ["java", str(ROOT / "CreateMeasurements.java"), str(rows)],
-            cwd=ROOT,
+            [sys.executable, str(ROOT / "create_measurements.py"), str(rows)],
+            cwd=DATA_DIR,
             check=True,
         )
+        shutil.move(str(DATA_DIR / "measurements.txt"), str(measurement_file))
+
+        # Create measurements symlink before running baseline
+        measurements_link = DATA_DIR / "measurements.txt"
+        measurements_link.unlink(missing_ok=True)
+        measurements_link.symlink_to(f"measurements/{filename}")
+
         with open(solution_file, "w") as f:
             subprocess.run(
-                ["java", str(ROOT / "CalculateAverage_baseline.java")],
-                cwd=ROOT,
+                [sys.executable, str(ROOT / "calculate_average_baseline.py")],
+                cwd=DATA_DIR,
                 check=True,
                 stdout=f,
             )
-        shutil.move(str(ROOT / "measurements.txt"), str(measurement_file))
 
     for name, target in [
         ("measurements.txt", f"measurements/{filename}"),
-        ("solution.txt", f"solutions/{filename}"),
+        ("solution.tsv", f"solutions/{filename}"),
     ]:
         link = DATA_DIR / name
         link.unlink(missing_ok=True)
         link.symlink_to(target)
-
-
-def format_output(text: str) -> list[str]:
-    stripped = text.strip()
-    if stripped.startswith("{"):
-        stripped = stripped[1:]
-    if stripped.endswith("}"):
-        stripped = stripped[:-1]
-    return sorted(line.strip() for line in stripped.split(", ") if line.strip())
 
 
 class SolutionResult(NamedTuple):
@@ -90,7 +84,7 @@ class BenchmarkStats(NamedTuple):
     stddev: float
 
 
-def _run_solution(dir: Path, expected: list[str], solution_text: str) -> SolutionResult:
+def _run_solution(dir: Path, expected_lines: list[str]) -> SolutionResult:
     lang = dir.name
     try:
         subprocess.run(
@@ -107,6 +101,7 @@ def _run_solution(dir: Path, expected: list[str], solution_text: str) -> Solutio
             text=True,
         )
         elapsed = time.perf_counter() - start
+
         if result.returncode != 0:
             return SolutionResult(
                 lang,
@@ -119,29 +114,23 @@ def _run_solution(dir: Path, expected: list[str], solution_text: str) -> Solutio
                 ),
             )
 
-        actual = format_output(result.stdout)
-        if actual != expected:
-            raw_lines = [
-                line.strip()
-                for line in result.stdout.strip().strip("{}").split(", ")
-                if line.strip()
-            ]
-            exp_lines = [
-                line.strip()
-                for line in solution_text.strip().strip("{}").split(", ")
-                if line.strip()
-            ]
+        actual_lines = result.stdout.rstrip("\n").split("\n")
+
+        if actual_lines != expected_lines:
             first_diff = None
-            for i, (e, a) in enumerate(zip(exp_lines, raw_lines)):
+            for i, (e, a) in enumerate(zip(expected_lines, actual_lines)):
                 if e != a:
                     first_diff = i
                     break
-            if first_diff is None and len(raw_lines) != len(exp_lines):
-                first_diff = min(len(exp_lines), len(raw_lines))
+            if first_diff is None and len(actual_lines) != len(expected_lines):
+                first_diff = min(len(expected_lines), len(actual_lines))
 
-            detail = f"expected {len(exp_lines)} lines, got {len(raw_lines)}"
+            detail = f"expected {len(expected_lines)} lines, got {len(actual_lines)}"
             if first_diff is not None:
-                detail += f"\nfirst diff at line {first_diff + 1}:\n  expected: [red]{exp_lines[first_diff]}[/red]\n  actual:   [green]{raw_lines[first_diff]}[/green]"
+                exp_line = expected_lines[first_diff] if first_diff < len(expected_lines) else "<missing>"
+                act_line = actual_lines[first_diff] if first_diff < len(actual_lines) else "<missing>"
+                detail += f"\nfirst diff at line {first_diff + 1}:\n  expected: [red]{exp_line}[/red]\n  actual:   [green]{act_line}[/green]"
+
             return SolutionResult(
                 lang,
                 elapsed,
@@ -152,6 +141,7 @@ def _run_solution(dir: Path, expected: list[str], solution_text: str) -> Solutio
                     border_style="red",
                 ),
             )
+
         return SolutionResult(
             lang,
             elapsed,
@@ -182,12 +172,11 @@ def _build_table(results: list[SolutionResult]) -> Table:
     table.add_column("Time", justify="right")
     table.add_column("Status")
     for i, r in enumerate(results, 1):
-        ok = r.ok
         table.add_row(
             str(i),
             r.lang,
             f"{r.elapsed:.3f}s" if r.elapsed is not None else "—",
-            "[green]OK[/green]" if ok else "[red]FAIL[/red]",
+            "[green]OK[/green]" if r.ok else "[red]FAIL[/red]",
         )
     return table
 
@@ -195,38 +184,31 @@ def _build_table(results: list[SolutionResult]) -> Table:
 def run_all() -> bool:
     ensure_data()
 
-    solution_text = (DATA_DIR / "solution.txt").read_text()
-    expected = format_output(solution_text)
+    solution_text = (DATA_DIR / "solution.tsv").read_text()
+    expected_lines = solution_text.rstrip("\n").split("\n")
 
     dirs = sorted(d for d in SOLUTIONS_DIR.iterdir() if d.is_dir())
 
-    console.print(
-        f"[cyan]Running {len(dirs)} solutions (N_POWER={N_POWER}, {10**N_POWER:,} rows)...[/cyan]"
-    )
+    console.print(f"[cyan]Running {len(dirs)} solutions (N_POWER={N_POWER}, {10**N_POWER:,} rows)...[/cyan]")
 
     results: list[SolutionResult] = []
     table = _build_table(results)
 
     def add_result(r: SolutionResult):
         results.append(r)
-        results.sort(
-            key=lambda x: (x.elapsed if x.elapsed is not None else float("inf"), x.lang)
-        )
+        results.sort(key=lambda x: (x.elapsed if x.elapsed is not None else float("inf"), x.lang))
         live.update(_build_table(results))
 
     with Live(table, refresh_per_second=10, vertical_overflow="visible") as live:
         if PARALLEL:
             with concurrent.futures.ThreadPoolExecutor() as pool:
-                futures = {
-                    pool.submit(_run_solution, d, expected, solution_text): d
-                    for d in dirs
-                }
+                futures = {pool.submit(_run_solution, d, expected_lines): d for d in dirs}
                 for future in concurrent.futures.as_completed(futures):
                     with print_lock:
                         add_result(future.result())
         else:
             for d in dirs:
-                add_result(_run_solution(d, expected, solution_text))
+                add_result(_run_solution(d, expected_lines))
 
     errors = [r.lang for r in results if not r.ok]
     if errors:
@@ -278,11 +260,7 @@ def benchmark(warmup: int, iterations: int):
             min=min(times),
             max=max(times),
             mean=mean,
-            stddev=(
-                math.sqrt(sum((t - mean) ** 2 for t in times) / len(times))
-                if len(times) > 1
-                else 0.0
-            ),
+            stddev=(math.sqrt(sum((t - mean) ** 2 for t in times) / len(times)) if len(times) > 1 else 0.0),
         )
 
     if PARALLEL:
@@ -323,9 +301,7 @@ def data():
 def sweep():
     global N_POWER
     for power in range(1, 10):
-        console.print(
-            f"\n[bold cyan]=== N_POWER={power} ({10**power:,} rows) ===[/bold cyan]"
-        )
+        console.print(f"\n[bold cyan]=== N_POWER={power} ({10**power:,} rows) ===[/bold cyan]")
         N_POWER = power
         if not run_all():
             console.print(f"[bold red]FAILED at N_POWER={power}, aborting.[/bold red]")
@@ -351,7 +327,7 @@ def main():
         iterations = int(sys.argv[3]) if len(sys.argv) > 3 else 3
         benchmark(warmup, iterations)
     else:
-        COMMANDS[cmd]()  # ty:ignore[missing-argument]
+        COMMANDS[cmd]()
 
 
 if __name__ == "__main__":
