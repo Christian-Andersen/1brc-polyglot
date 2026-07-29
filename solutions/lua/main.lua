@@ -1,7 +1,3 @@
-local function round_toward_positive(value)
-	return math.floor(value + 0.5) / 10.0
-end
-
 local MIN = 1
 local MAX = 2
 local TOTAL = 3
@@ -38,7 +34,7 @@ for k in pairs(DATA) do
 	cities[#cities + 1] = k
 end
 table.sort(cities)
-for i, city in ipairs(cities) do
+for _, city in ipairs(cities) do
 	local stats = DATA[city]
 	print(string.format("%s	%d	%d	%d	%d", city, stats[MIN], stats[MAX], stats[TOTAL], stats[COUNT]))
 end

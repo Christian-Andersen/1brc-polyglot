@@ -20,10 +20,6 @@ fn ascLessThan(_: void, lhs: []const u8, rhs: []const u8) bool {
     return std.mem.lessThan(u8, lhs, rhs);
 }
 
-fn roundTowardPositive(value: f64) f64 {
-    return @floor(value + 0.5) / 10.0;
-}
-
 pub fn main(init: std.process.Init) !void {
     var arena = std.heap.ArenaAllocator{
         .child_allocator = init.gpa,

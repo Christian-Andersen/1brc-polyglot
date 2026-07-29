@@ -1,4 +1,3 @@
-import math
 from collections import defaultdict
 from pathlib import Path
 from typing import NamedTuple
@@ -11,10 +10,6 @@ class Stats(NamedTuple):
     max: int = -1000
     total: int = 0
     count: int = 0
-
-
-def round_toward_positive(value: float) -> float:
-    return math.floor(value + 0.5) / 10.0
 
 
 def main() -> int:

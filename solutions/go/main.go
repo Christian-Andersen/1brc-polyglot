@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"fmt"
 	"log"
-	"math"
 	"os"
 	"slices"
 	"strconv"
@@ -27,10 +26,6 @@ func sortedKeys[V any](m map[string]V) []string {
 	}
 	slices.Sort(keys)
 	return keys
-}
-
-func roundTowardsPositive(x float64) float64 {
-	return math.Floor(x+0.5) / 10
 }
 
 func main() {

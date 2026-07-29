@@ -10,10 +10,6 @@ type Stats = {
 	count: number;
 };
 
-function round_toward_positive(value: number): string {
-	return (Math.floor(value + 0.5) / 10).toFixed(1);
-}
-
 async function main(): Promise<void> {
 	const fileStream = fs.createReadStream(DATA_PATH);
 	const rl = readline.createInterface({
