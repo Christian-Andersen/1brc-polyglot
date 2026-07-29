@@ -1,0 +1,16 @@
+alias c := check
+alias r := run
+
+default: check run
+
+check:
+    prek run --all-files
+
+run:
+    ruby main.rb
+
+build:
+    @echo "nothing to build"
+
+bench:
+    ruby main.rb
