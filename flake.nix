@@ -1,14 +1,11 @@
 {
   description = "Development environment";
-
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
   };
-
   outputs = {nixpkgs, ...}: let
     system = "x86_64-linux";
     pkgs = import nixpkgs {inherit system;};
-    pythonWithRich = pkgs.python3.withPackages (p: [p.rich]);
   in {
     devShells.${system}.default = pkgs.mkShell {
       packages = with pkgs; [
@@ -16,7 +13,7 @@
         prek
         just
         jdk21
-        pythonWithRich
+        (python314.withPackages (p: [p.rich]))
         pypy311
         ruff
         ty
