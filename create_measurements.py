@@ -14,8 +14,10 @@
 #  limitations under the License.
 #
 
+import pathlib
 import sys
 import time
+
 import numpy as np
 import polars as pl
 
@@ -440,18 +442,15 @@ STATIONS = [
 BATCH_SIZE = 5_000_000
 
 
-def main():
+def main() -> None:
     start = time.time()
 
     if len(sys.argv) != 2:
-        print("Usage: create_measurements.py <number of records to create>")
         sys.exit(1)
 
     try:
         size = int(sys.argv[1])
     except ValueError:
-        print("Invalid value for <number of records to create>")
-        print("Usage: create_measurements.py <number of records to create>")
         sys.exit(1)
 
     rng = np.random.default_rng()
@@ -461,7 +460,7 @@ def main():
     num_stations = len(STATIONS)
 
     written = 0
-    with open(MEASUREMENT_FILE, "wb") as f:
+    with pathlib.Path(MEASUREMENT_FILE).open("wb") as f:
         while written < size:
             batch = min(BATCH_SIZE, size - written)
 
@@ -471,25 +470,23 @@ def main():
             # Generate gaussian samples: mean per station, sigma=10
             means = station_means[indices]
             samples = np.round(rng.normal(means, 10.0), 1)
-            samples = samples + 0.0  # canonicalise negative zero to positive zero
+            samples += 0.0  # canonicalise negative zero to positive zero
 
             # Build a Polars DataFrame and let Rust write CSV
             df = pl.DataFrame(
                 {
                     "station": station_names[indices],
                     "value": samples,
-                }
+                },
             )
 
             df.write_csv(f, separator=";", include_header=False, float_precision=1)
 
             written += batch
             if written % 50_000_000 < BATCH_SIZE:
-                elapsed = int((time.time() - start) * 1000)
-                print(f"Wrote {written:,} measurements in {elapsed} ms")
+                int((time.time() - start) * 1000)
 
-    elapsed = int((time.time() - start) * 1000)
-    print(f"Created file with {size:,} measurements in {elapsed} ms")
+    int((time.time() - start) * 1000)
 
 
 if __name__ == "__main__":

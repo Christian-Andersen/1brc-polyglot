@@ -29,11 +29,9 @@ def main() -> int:
                 total=data[city].total + temp,
                 count=data[city].count + 1,
             )
-    s = "{"
     for city in sorted(data):
-        s += f"{city}={round_toward_positive(data[city].min)}/{round_toward_positive(data[city].total / data[city].count)}/{round_toward_positive(data[city].max)}, "  # noqa: E501
-    s = s[:-2] + "}"
-    print(s)
+        stats = data[city]
+        print(f"{city}\t{stats.min}\t{stats.max}\t{stats.total}\t{stats.count}")
     return 0
 
 

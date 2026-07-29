@@ -15,12 +15,13 @@
 #
 
 import sys
+
 import polars as pl
 
 FILE = "./measurements.txt"
 
 
-def main():
+def main() -> None:
     df = pl.read_csv(
         FILE,
         separator=";",
@@ -33,7 +34,10 @@ def main():
     # e.g. "12.3" -> 123, "-4.5" -> -45
     # We remove the decimal point and parse as int, which is equivalent to multiplying by 10
     df = df.with_columns(
-        pl.col("value").str.replace(".", "", literal=True).cast(pl.Int64).alias("tenths")
+        pl.col("value")
+        .str.replace(".", "", literal=True)
+        .cast(pl.Int64)
+        .alias("tenths"),
     )
 
     result = (

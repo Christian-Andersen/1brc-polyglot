@@ -64,19 +64,15 @@ pub fn main(init: std.process.Init) !void {
     var buf: [40960]u8 = undefined;
     var writer = std.Io.File.stdout().writerStreaming(io, &buf);
     const stdout = &writer.interface;
-    try stdout.print("{{", .{});
-    for (keys, 1..) |key, index| {
+    for (keys) |key| {
         const value = data.get(key).?;
-        try stdout.print("{s}={d:.1}/{d:.1}/{d:.1}", .{
+        try stdout.print("{s}\t{d}\t{d}\t{d}\t{d}\n", .{
             key,
-            roundTowardPositive(@as(f32, @floatFromInt(value.min))),
-            roundTowardPositive(@as(f32, @floatFromInt(value.total)) / @as(f32, @floatFromInt(value.count))),
-            roundTowardPositive(@as(f32, @floatFromInt(value.max))),
+            value.min,
+            value.max,
+            value.total,
+            value.count,
         });
-        if (index < keys.len) {
-            try stdout.print(", ", .{});
-        }
     }
-    try stdout.print("}}", .{});
     try writer.flush();
 }

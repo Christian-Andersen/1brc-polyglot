@@ -36,19 +36,8 @@ fn main() {
     let mut sorted_keys: Vec<&String> = stats.keys().collect();
     sorted_keys.sort();
     let len = sorted_keys.len();
-    print!("{{");
-    for (i, &key) in sorted_keys.iter().enumerate() {
+    for &key in sorted_keys.iter() {
         let value = &stats[key];
-        print!(
-            "{}={:.1}/{:.1}/{:.1}",
-            key,
-            round_towards_positive(f64::from(value.min)),
-            round_towards_positive(f64::from(value.total) / f64::from(value.count)),
-            round_towards_positive(f64::from(value.max))
-        );
-        if (i + 1) < len {
-            print!(", ");
-        }
+        println!("{}\t{}\t{}\t{}\t{}", key, value.min, value.max, value.total, value.count);
     }
-    print!("}}");
 }

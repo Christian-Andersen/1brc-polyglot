@@ -68,11 +68,8 @@ func main() {
 	if err := scanner.Err(); err != nil {
 		log.Fatalf("Error while reading file: %s", err)
 	}
-	output := "{"
 	for _, k := range sortedKeys(data) {
 		stats := data[k]
-		output += fmt.Sprintf("%s=%.1f/%.1f/%.1f, ", k, roundTowardsPositive(float64(stats.min)), roundTowardsPositive(float64(stats.total)/float64(stats.count)), roundTowardsPositive(float64(stats.max)))
+		fmt.Printf("%s\t%d\t%d\t%d\t%d\n", k, stats.min, stats.max, stats.total, stats.count)
 	}
-	output = output[:len(output)-2] + "}"
-	fmt.Print(output)
 }

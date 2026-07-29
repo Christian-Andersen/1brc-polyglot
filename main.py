@@ -1,11 +1,12 @@
 import concurrent.futures
 import math
+import multiprocessing
 import os
 import shutil
 import subprocess
 import sys
-import threading
 import time
+from collections.abc import Callable
 from pathlib import Path
 from typing import NamedTuple
 
@@ -22,10 +23,10 @@ console = Console()
 
 N_POWER = int(os.environ.get("N_POWER", "9"))
 PARALLEL = os.environ.get("PARALLEL", "1") == "1"
-print_lock = threading.Lock()
+print_lock = multiprocessing.Lock()
 
 
-def ensure_data():
+def ensure_data() -> None:
     measurements_dir = DATA_DIR / "measurements"
     solutions_dir = DATA_DIR / "solutions"
     measurements_dir.mkdir(parents=True, exist_ok=True)
@@ -40,7 +41,11 @@ def ensure_data():
     solution_file = solutions_dir / filename
 
     if not measurement_file.exists():
-        console.print(f"[yellow]--> {filename} not found. Generating {rows:,} measurements...[/yellow]")
+        console.print(
+            f"[yellow]--> {filename} not found. Generating {rows:,} measurements...[/yellow]",
+        )
+        # Remove stale symlink before generating (create_measurements.py writes to ./measurements.txt)
+        (DATA_DIR / "measurements.txt").unlink(missing_ok=True)
         subprocess.run(
             [sys.executable, str(ROOT / "create_measurements.py"), str(rows)],
             cwd=DATA_DIR,
@@ -48,12 +53,12 @@ def ensure_data():
         )
         shutil.move(str(DATA_DIR / "measurements.txt"), str(measurement_file))
 
-        # Create measurements symlink before running baseline
+        # Symlink MUST exist before baseline runs, since it reads ./measurements.txt
         measurements_link = DATA_DIR / "measurements.txt"
         measurements_link.unlink(missing_ok=True)
         measurements_link.symlink_to(f"measurements/{filename}")
 
-        with open(solution_file, "w") as f:
+        with solution_file.open("w") as f:
             subprocess.run(
                 [sys.executable, str(ROOT / "calculate_average_baseline.py")],
                 cwd=DATA_DIR,
@@ -61,6 +66,7 @@ def ensure_data():
                 stdout=f,
             )
 
+    # Always update symlinks (handles N_POWER changes between runs)
     for name, target in [
         ("measurements.txt", f"measurements/{filename}"),
         ("solution.tsv", f"solutions/{filename}"),
@@ -118,7 +124,7 @@ def _run_solution(dir: Path, expected_lines: list[str]) -> SolutionResult:
 
         if actual_lines != expected_lines:
             first_diff = None
-            for i, (e, a) in enumerate(zip(expected_lines, actual_lines)):
+            for i, (e, a) in enumerate(zip(expected_lines, actual_lines, strict=False)):
                 if e != a:
                     first_diff = i
                     break
@@ -127,8 +133,16 @@ def _run_solution(dir: Path, expected_lines: list[str]) -> SolutionResult:
 
             detail = f"expected {len(expected_lines)} lines, got {len(actual_lines)}"
             if first_diff is not None:
-                exp_line = expected_lines[first_diff] if first_diff < len(expected_lines) else "<missing>"
-                act_line = actual_lines[first_diff] if first_diff < len(actual_lines) else "<missing>"
+                exp_line = (
+                    expected_lines[first_diff]
+                    if first_diff < len(expected_lines)
+                    else "<missing>"
+                )
+                act_line = (
+                    actual_lines[first_diff]
+                    if first_diff < len(actual_lines)
+                    else "<missing>"
+                )
                 detail += f"\nfirst diff at line {first_diff + 1}:\n  expected: [red]{exp_line}[/red]\n  actual:   [green]{act_line}[/green]"
 
             return SolutionResult(
@@ -189,20 +203,29 @@ def run_all() -> bool:
 
     dirs = sorted(d for d in SOLUTIONS_DIR.iterdir() if d.is_dir())
 
-    console.print(f"[cyan]Running {len(dirs)} solutions (N_POWER={N_POWER}, {10**N_POWER:,} rows)...[/cyan]")
+    console.print(
+        f"[cyan]Running {len(dirs)} solutions "
+        f"(N_POWER={N_POWER}, {10**N_POWER:,} rows)...[/cyan]",
+    )
 
     results: list[SolutionResult] = []
     table = _build_table(results)
 
-    def add_result(r: SolutionResult):
+    def add_result(r: SolutionResult) -> None:
         results.append(r)
-        results.sort(key=lambda x: (x.elapsed if x.elapsed is not None else float("inf"), x.lang))
+        results.sort(
+            key=lambda x: (x.elapsed if x.elapsed is not None else float("inf"), x.lang),
+        )
         live.update(_build_table(results))
 
     with Live(table, refresh_per_second=10, vertical_overflow="visible") as live:
         if PARALLEL:
-            with concurrent.futures.ThreadPoolExecutor() as pool:
-                futures = {pool.submit(_run_solution, d, expected_lines): d for d in dirs}
+            with concurrent.futures.ProcessPoolExecutor(
+                max_workers=len(dirs),
+            ) as pool:
+                futures = {
+                    pool.submit(_run_solution, d, expected_lines): d for d in dirs
+                }
                 for future in concurrent.futures.as_completed(futures):
                     with print_lock:
                         add_result(future.result())
@@ -220,7 +243,7 @@ def run_all() -> bool:
     return not errors
 
 
-def benchmark(warmup: int, iterations: int):
+def benchmark(warmup: int, iterations: int) -> None:
     ensure_data()
 
     dirs = sorted(d for d in SOLUTIONS_DIR.iterdir() if d.is_dir())
@@ -229,49 +252,57 @@ def benchmark(warmup: int, iterations: int):
         return
 
     console.print(
-        f"[cyan]Benchmarking {len(dirs)} solutions (N_POWER={N_POWER}, {10**N_POWER:,} rows, {warmup} warmup, {iterations} iterations)...[/cyan]"
+        f"[cyan]Benchmarking {len(dirs)} solutions "
+        f"(N_POWER={N_POWER}, {10**N_POWER:,} rows, "
+        f"{warmup} warmup, {iterations} iterations)...[/cyan]",
     )
 
     results: dict[str, BenchmarkStats] = {}
 
-    def _bench_solution(dir: Path) -> tuple[str, BenchmarkStats]:
-        lang = dir.name
-        times: list[float] = []
+def _bench_solution(dir: Path, warmup: int, iterations: int) -> tuple[str, BenchmarkStats]:
+    lang = dir.name
+    times: list[float] = []
 
+    subprocess.run(
+        ["just", "build"],
+        cwd=dir,
+        capture_output=True,
+    )
+
+    for i in range(warmup + iterations):
+        start = time.perf_counter()
         subprocess.run(
-            ["just", "build"],
+            ["just", "bench"],
             cwd=dir,
             capture_output=True,
         )
+        elapsed = time.perf_counter() - start
+        if i >= warmup:
+            times.append(elapsed)
 
-        for i in range(warmup + iterations):
-            start = time.perf_counter()
-            subprocess.run(
-                ["just", "bench"],
-                cwd=dir,
-                capture_output=True,
-            )
-            elapsed = time.perf_counter() - start
-            if i >= warmup:
-                times.append(elapsed)
-
-        mean = sum(times) / len(times)
-        return lang, BenchmarkStats(
-            min=min(times),
-            max=max(times),
-            mean=mean,
-            stddev=(math.sqrt(sum((t - mean) ** 2 for t in times) / len(times)) if len(times) > 1 else 0.0),
-        )
+    mean = sum(times) / len(times)
+    return lang, BenchmarkStats(
+        min=min(times),
+        max=max(times),
+        mean=mean,
+        stddev=(
+            math.sqrt(sum((t - mean) ** 2 for t in times) / len(times))
+            if len(times) > 1
+            else 0.0
+        ),
+    )
 
     if PARALLEL:
-        with concurrent.futures.ThreadPoolExecutor() as pool:
-            futures = {pool.submit(_bench_solution, d): d for d in dirs}
+        with concurrent.futures.ProcessPoolExecutor(
+            max_workers=len(dirs),
+        ) as pool:
+            futures = {pool.submit(_bench_solution, d, warmup, iterations): d for d in dirs}
             for future in concurrent.futures.as_completed(futures):
                 lang, stats = future.result()
                 results[lang] = stats
     else:
         for d in dirs:
-            lang, stats = _bench_solution(d)
+            lang, stats = _bench_solution(d, warmup, iterations)
             results[lang] = stats
 
     table = Table(title="Benchmark Results")
@@ -293,22 +324,24 @@ def benchmark(warmup: int, iterations: int):
     console.print(table)
 
 
-def data():
+def data() -> None:
     ensure_data()
     console.print("[green]Data ready.[/green]")
 
 
-def sweep():
+def sweep() -> None:
     global N_POWER
     for power in range(1, 10):
-        console.print(f"\n[bold cyan]=== N_POWER={power} ({10**power:,} rows) ===[/bold cyan]")
+        console.print(
+            f"\n[bold cyan]=== N_POWER={power} ({10**power:,} rows) ===[/bold cyan]",
+        )
         N_POWER = power
         if not run_all():
             console.print(f"[bold red]FAILED at N_POWER={power}, aborting.[/bold red]")
             raise SystemExit(1)
 
 
-COMMANDS = {
+COMMANDS: dict[str, Callable[..., object]] = {
     "run": run_all,
     "benchmark": benchmark,
     "data": data,
@@ -316,9 +349,9 @@ COMMANDS = {
 }
 
 
-def main():
+def main() -> None:
     if len(sys.argv) < 2 or sys.argv[1] not in COMMANDS:
-        print(f"usage: main.py {{{', '.join(COMMANDS)}}}")
+        console.print(f"usage: main.py {{{', '.join(COMMANDS)}}}")
         raise SystemExit(1)
 
     cmd = sys.argv[1]

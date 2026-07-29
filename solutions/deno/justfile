@@ -10,7 +10,7 @@ run:
     deno run --allow-read main.ts
 
 build:
-    deno compile --allow-read -o 1brc main.ts
+    @echo "nothing to build"
 
 bench:
-    ./1brc
+    deno run --allow-read main.ts

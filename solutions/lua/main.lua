@@ -38,19 +38,7 @@ for k in pairs(DATA) do
 	cities[#cities + 1] = k
 end
 table.sort(cities)
-print("{")
 for i, city in ipairs(cities) do
-	io.write(
-		string.format(
-			"%s=%.1f/%.1f/%.1f",
-			city,
-			round_toward_positive(DATA[city][MIN]),
-			round_toward_positive(DATA[city][TOTAL] / DATA[city][COUNT]),
-			round_toward_positive(DATA[city][MAX])
-		)
-	)
-	if i ~= #cities then
-		io.write(", ")
-	end
+	local stats = DATA[city]
+	print(string.format("%s	%d	%d	%d	%d", city, stats[MIN], stats[MAX], stats[TOTAL], stats[COUNT]))
 end
-print("}")
