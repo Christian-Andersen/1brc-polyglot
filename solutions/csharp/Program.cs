@@ -36,7 +36,7 @@ class Program
                 stats[city] = new Stats(temp, temp, temp, 1);
             }
         }
-        var sortedKeys = stats.Keys.OrderBy(k => k);
+        var sortedKeys = stats.Keys.OrderBy(k => k, StringComparer.Ordinal);
         foreach (var key in sortedKeys)
         {
             Stats s = stats[key];

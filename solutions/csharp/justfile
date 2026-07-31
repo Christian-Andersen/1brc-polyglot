@@ -13,4 +13,4 @@ build:
     dotnet publish -c Release -o publish
 
 bench:
-    ./publish/csharp
+    DOTNET_ROOT="$(dirname $(dirname $(readlink -f $(which dotnet))))/dotnet" ./publish/csharp
