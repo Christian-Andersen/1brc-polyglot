@@ -1,0 +1,9 @@
+[[repos]]
+repo = "local"
+
+[[repos.hooks]]
+id = "swift-typecheck"
+name = "swift-typecheck"
+language = "system"
+pass_filenames = false
+entry = "swiftc -typecheck main.swift"

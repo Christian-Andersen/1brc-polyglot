@@ -1,0 +1,16 @@
+alias c := check
+alias r := run
+
+default: check run
+
+check:
+    prek run --all-files
+
+run:
+    swift main.swift
+
+build:
+    swiftc -O -o main main.swift
+
+bench:
+    ./main

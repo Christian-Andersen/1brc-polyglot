@@ -1,0 +1,9 @@
+[[repos]]
+repo = "local"
+
+[[repos.hooks]]
+id = "julia-check"
+name = "julia-check"
+language = "system"
+pass_filenames = false
+entry = "julia -e 'Meta.parse(read(\"main.jl\", String))'"

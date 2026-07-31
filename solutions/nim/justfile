@@ -1,0 +1,16 @@
+alias c := check
+alias r := run
+
+default: check run
+
+check:
+    prek run --all-files
+
+run:
+    nim r main.nim
+
+build:
+    nim c -d:release main.nim
+
+bench:
+    ./main

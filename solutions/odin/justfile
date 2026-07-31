@@ -1,0 +1,16 @@
+alias c := check
+alias r := run
+
+default: check run
+
+check:
+    prek run --all-files
+
+run:
+    odin run .
+
+build:
+    odin build . -o:speed -out:main
+
+bench:
+    ./main

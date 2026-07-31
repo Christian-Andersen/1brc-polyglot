@@ -1,0 +1,9 @@
+[[repos]]
+repo = "local"
+
+[[repos.hooks]]
+id = "nim-check"
+name = "nim-check"
+language = "system"
+pass_filenames = false
+entry = "nim check main.nim"

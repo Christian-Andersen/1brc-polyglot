@@ -1,0 +1,16 @@
+alias c := check
+alias r := run
+
+default: check run
+
+check:
+    prek run --all-files
+
+run:
+    julia main.jl
+
+build:
+    @echo "nothing to build"
+
+bench:
+    julia main.jl

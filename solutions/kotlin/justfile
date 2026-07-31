@@ -1,0 +1,16 @@
+alias c := check
+alias r := run
+
+default: check run
+
+check:
+    prek run --all-files
+
+run:
+    kotlin Main.kt
+
+build:
+    kotlinc Main.kt -include-runtime -d main.jar
+
+bench:
+    java -jar main.jar

@@ -13,6 +13,10 @@
         prek
         just
         jdk21
+        julia
+        kotlin
+        nim
+        odin
         (python314.withPackages (p: [p.rich p.polars p.numpy]))
         pypy311
         ruff
@@ -28,6 +32,7 @@
         luajit
         stylua
         selene
+        swift
         zig
         ruby
         dart
