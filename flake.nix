@@ -32,7 +32,6 @@
         luajit
         stylua
         selene
-        swift
         zig
         ruby
         dart
