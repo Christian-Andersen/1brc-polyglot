@@ -7,7 +7,7 @@ check:
     prek run --all-files
 
 run:
-    nim r main.nim
+    nim r --hints:off main.nim
 
 build:
     nim c -d:release main.nim
