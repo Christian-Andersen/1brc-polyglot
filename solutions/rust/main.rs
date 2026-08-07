@@ -17,16 +17,22 @@ fn main() {
         let line = line.unwrap();
         if let Some((city, temp)) = line.split_once(';') {
             let temp: i32 = temp.replace('.', "").parse().unwrap();
-            let entry = stats.entry(String::from(city)).or_insert(Stats {
-                min: i32::MAX,
-                max: i32::MIN,
-                total: 0,
-                count: 0,
-            });
-            entry.min = std::cmp::min(entry.min, temp);
-            entry.max = std::cmp::max(entry.max, temp);
-            entry.total += temp;
-            entry.count += 1;
+            if let Some(entry) = stats.get_mut(city) {
+                entry.min = std::cmp::min(entry.min, temp);
+                entry.max = std::cmp::max(entry.max, temp);
+                entry.total += temp;
+                entry.count += 1;
+            } else {
+                stats.insert(
+                    String::from(city),
+                    Stats {
+                        min: temp,
+                        max: temp,
+                        total: temp,
+                        count: 1,
+                    },
+                );
+            }
         }
     }
     let mut sorted_keys: Vec<&String> = stats.keys().collect();

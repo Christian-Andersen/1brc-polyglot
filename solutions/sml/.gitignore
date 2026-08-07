@@ -1,0 +1,7 @@
+*.cm~
+*.cm/arch-*
+*.cm/arch-specific/
+*.cm/Makefile
+main
+main.x86-linux
+main-smlnj

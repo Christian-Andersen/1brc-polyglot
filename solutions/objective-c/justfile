@@ -1,0 +1,16 @@
+alias c := check
+alias r := run
+
+default: check run
+
+check:
+    prek run --all-files
+
+run:
+    clang -O2 -D_NONFRAGILE_ABI=1 -DGNUSTEP -DGNUSTEP_BASE_LIBRARY=1 $(gnustep-config --variable=GNUSTEP_HEADERS | sed 's/^/-I/') $(gnustep-config --variable=GNUSTEP_LOCAL_HEADERS | sed 's/^/-I/') -fobjc-runtime=gnustep-2.2 -fblocks -fconstant-string-class=NSConstantString $(gnustep-config --base-libs | sed 's/-L\/home\/christian[^ ]*//') -o main main.m && ./main
+
+build:
+    clang -O2 -D_NONFRAGILE_ABI=1 -DGNUSTEP -DGNUSTEP_BASE_LIBRARY=1 $(gnustep-config --variable=GNUSTEP_HEADERS | sed 's/^/-I/') $(gnustep-config --variable=GNUSTEP_LOCAL_HEADERS | sed 's/^/-I/') -fobjc-runtime=gnustep-2.2 -fblocks -fconstant-string-class=NSConstantString $(gnustep-config --base-libs | sed 's/-L\/home\/christian[^ ]*//') -o main main.m
+
+bench:
+    ./main

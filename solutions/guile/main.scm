@@ -1,0 +1,33 @@
+(use-modules (ice-9 rdelim) (srfi srfi-69) (ice-9 format))
+(define stats (make-hash-table))
+(define (parse-temp line start)
+  (define len (string-length line))
+  (let loop ((i start) (v 0) (neg 0))
+    (if (>= i len)
+      (if (= neg 1) (- v) v)
+      (let ((c (string-ref line i)))
+        (cond
+          ((char=? c #\-) (loop (+ i 1) v 1))
+          ((char=? c #\.) (loop (+ i 1) v neg))
+          (else (loop (+ i 1) (+ (* v 10) (- (char->integer c) 48)) neg)))))))
+(call-with-input-file "../../data/measurements.txt"
+  (lambda (p)
+    (let loop ((line (read-line p)))
+      (when (not (eof-object? line))
+        (let* ((semi (string-index line #\;))
+               (city (substring line 0 semi))
+               (t (parse-temp line (+ semi 1)))
+               (e (hash-table-ref/default stats city #f)))
+          (if e
+            (begin
+              (set-car! e (min (car e) t))
+              (set-car! (cdr e) (max (cadr e) t))
+              (set-car! (cddr e) (+ (caddr e) t))
+              (set-car! (cdddr e) (+ (car (cdddr e)) 1)))
+            (hash-table-set! stats city (list t t t 1))))
+        (loop (read-line p))))))
+(for-each
+  (lambda (city)
+    (let ((e (hash-table-ref stats city)))
+      (format #t "~a\t~a\t~a\t~a\t~a~%" city (car e) (cadr e) (caddr e) (cadddr e))))
+  (sort (hash-table-keys stats) string<?))

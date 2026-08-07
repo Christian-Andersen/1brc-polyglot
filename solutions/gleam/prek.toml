@@ -1,0 +1,9 @@
+[[repos]]
+repo = "local"
+
+[[repos.hooks]]
+id = "noop"
+name = "noop"
+language = "system"
+pass_filenames = false
+entry = "true"

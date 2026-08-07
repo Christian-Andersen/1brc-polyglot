@@ -4,11 +4,15 @@ File.foreach("../../data/measurements.txt") do |line|
   parts = line.split(";")
   city = parts[0]
   temp = parts[1].gsub(".", "").to_i
-  data[city] ||= Stats.new(1000, -1000, 0, 0)
-  data[city].min = [data[city].min, temp].min
-  data[city].max = [data[city].max, temp].max
-  data[city].total += temp
-  data[city].count += 1
+  if data.key?(city)
+    s = data[city]
+    s.min = temp if temp < s.min
+    s.max = temp if temp > s.max
+    s.total += temp
+    s.count += 1
+  else
+    data[city] = Stats.new(temp, temp, temp, 1)
+  end
 end
 data.keys.sort.each do |key|
   value = data[key]

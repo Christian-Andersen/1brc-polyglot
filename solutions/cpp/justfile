@@ -1,0 +1,16 @@
+alias c := check
+alias r := run
+
+default: check run
+
+check:
+    prek run --all-files
+
+run:
+    g++ -O2 -o main main.cpp && ./main
+
+build:
+    g++ -O2 -o main main.cpp
+
+bench:
+    ./main

@@ -1,0 +1,9 @@
+[[repos]]
+repo = "local"
+
+[[repos.hooks]]
+id = "php-lint"
+name = "php-lint"
+language = "system"
+pass_filenames = false
+entry = "php -l main.php"

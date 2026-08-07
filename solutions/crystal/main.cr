@@ -4,14 +4,7 @@ class Stats
   property total : Int32
   property count : Int32
 
-  def initialize(@min = Int32::MAX, @max = Int32::MIN, @total = 0, @count = 0)
-  end
-
-  def update(value : Int32)
-    @min = value if value < @min
-    @max = value if value > @max
-    @total += value
-    @count += 1
+  def initialize(@min, @max, @total, @count)
   end
 end
 
@@ -20,8 +13,14 @@ File.each_line("../../data/measurements.txt") do |line|
   parts = line.split(";")
   city = parts[0]
   temp = parts[1].gsub(".", "").to_i
-  stats = data[city] ||= Stats.new
-  stats.update(temp)
+  if stats = data[city]?
+    stats.min = temp if temp < stats.min
+    stats.max = temp if temp > stats.max
+    stats.total += temp
+    stats.count += 1
+  else
+    data[city] = Stats.new(temp, temp, temp, 1)
+  end
 end
 data.keys.sort.each do |key|
   value = data[key]

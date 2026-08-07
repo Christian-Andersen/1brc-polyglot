@@ -1,0 +1,16 @@
+alias c := check
+alias r := run
+
+default: check run
+
+check:
+    prek run --all-files
+
+run:
+    fpc -O2 -omain main.pas && ./main
+
+build:
+    fpc -O2 -omain main.pas
+
+bench:
+    ./main

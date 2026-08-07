@@ -1,0 +1,16 @@
+alias c := check
+alias r := run
+
+default: check run
+
+check:
+    prek run --all-files
+
+run:
+    cython --cplus --3 -o solution.c solution.pyx && g++ -shared -fPIC -O2 $(python3-config --includes) solution.c -o solution$(python3-config --extension-suffix) && python3 main.py
+
+build:
+    cython --cplus --3 -o solution.c solution.pyx && g++ -shared -fPIC -O2 $(python3-config --includes) solution.c -o solution$(python3-config --extension-suffix)
+
+bench:
+    python3 main.py

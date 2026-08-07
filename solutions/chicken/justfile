@@ -1,0 +1,16 @@
+alias c := check
+alias r := run
+
+default: check run
+
+check:
+    prek run --all-files
+
+run:
+    csi -script main.scm
+
+build:
+    @echo "nothing to build"
+
+bench:
+    csi -script main.scm

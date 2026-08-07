@@ -1,0 +1,16 @@
+alias c := check
+alias r := run
+
+default: check run
+
+check:
+    prek run --all-files
+
+run:
+    perl main.pl
+
+build:
+    @echo "nothing to build"
+
+bench:
+    perl main.pl

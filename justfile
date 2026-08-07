@@ -26,3 +26,7 @@ data:
 # run all solutions at ascending N_POWER levels
 sweep:
     python main.py sweep
+
+# regenerate solutions.md and link it from README.md
+readme:
+    python main.py readme

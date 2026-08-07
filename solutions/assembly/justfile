@@ -1,0 +1,16 @@
+alias c := check
+alias r := run
+
+default: check run
+
+check:
+    prek run --all-files
+
+run:
+    nasm -f elf64 -o main.o main.asm && gcc -no-pie -o main main.o && ./main
+
+build:
+    nasm -f elf64 -o main.o main.asm && gcc -no-pie -o main main.o
+
+bench:
+    ./main

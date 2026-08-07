@@ -1,0 +1,16 @@
+alias c := check
+alias r := run
+
+default: check run
+
+check:
+    prek run --all-files
+
+run:
+    gawk -f main.awk ../../data/measurements.txt
+
+build:
+    @echo "nothing to build"
+
+bench:
+    gawk -f main.awk ../../data/measurements.txt

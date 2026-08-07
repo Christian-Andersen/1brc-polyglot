@@ -1,0 +1,16 @@
+alias c := check
+alias r := run
+
+default: check run
+
+check:
+    prek run --all-files
+
+run:
+    haxe -main Main -neko main.n && neko main.n
+
+build:
+    haxe -main Main -neko main.n
+
+bench:
+    neko main.n

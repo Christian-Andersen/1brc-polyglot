@@ -1,0 +1,16 @@
+alias c := check
+alias r := run
+
+default: check run
+
+check:
+    prek run --all-files
+
+run:
+    @duckdb -noheader -list :memory: < main.sql
+
+build:
+    @echo "nothing to build"
+
+bench:
+    @duckdb -noheader -list :memory: < main.sql

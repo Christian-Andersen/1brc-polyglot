@@ -1,0 +1,16 @@
+alias c := check
+alias r := run
+
+default: check run
+
+check:
+    prek run --all-files
+
+run:
+    raku main.raku
+
+build:
+    @echo "nothing to build"
+
+bench:
+    raku main.raku

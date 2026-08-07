@@ -8,12 +8,15 @@ const Data = struct {
 };
 
 fn parse_temp(temp: []const u8) !i32 {
-    var iter = std.mem.splitScalar(u8, temp, '.');
-    const left = iter.next() orelse "";
-    const right = iter.next() orelse "";
     var buf: [32]u8 = undefined;
-    const new_str = try std.fmt.bufPrint(&buf, "{s}{s}", .{ left, right });
-    return std.fmt.parseInt(i32, new_str, 10);
+    var len: usize = 0;
+    for (temp) |c| {
+        if (c != '.') {
+            buf[len] = c;
+            len += 1;
+        }
+    }
+    return std.fmt.parseInt(i32, buf[0..len], 10);
 }
 
 fn ascLessThan(_: void, lhs: []const u8, rhs: []const u8) bool {

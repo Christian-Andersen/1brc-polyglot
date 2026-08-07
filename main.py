@@ -369,11 +369,136 @@ def sweep() -> None:
             raise SystemExit(1)
 
 
+def _collect_solution(
+    dir: Path, expected_lines: list[str], warmup: int, iterations: int
+) -> tuple[str, bool, float | None, BenchmarkStats | None]:
+    """Build, correctness-check, and benchmark one solution in a single pass."""
+    lang = dir.name
+    try:
+        build = subprocess.run(
+            ["just", "build"],
+            cwd=dir,
+            capture_output=True,
+            text=True,
+        )
+        if build.returncode != 0:
+            return lang, False, None, None
+
+        times: list[float] = []
+        output = ""
+        for i in range(warmup + iterations):
+            start = time.perf_counter()
+            result = subprocess.run(
+                ["just", "bench"],
+                cwd=dir,
+                capture_output=True,
+                text=True,
+            )
+            elapsed = time.perf_counter() - start
+            if result.returncode != 0:
+                return lang, False, None, None
+            output = result.stdout
+            if i >= warmup:
+                times.append(elapsed)
+
+        ok = output.rstrip("\n").split("\n") == expected_lines
+        if not times:
+            return lang, ok, None, None
+
+        mean = sum(times) / len(times)
+        stats = BenchmarkStats(
+            min=min(times),
+            max=max(times),
+            mean=mean,
+            stddev=(
+                math.sqrt(sum((t - mean) ** 2 for t in times) / len(times))
+                if len(times) > 1
+                else 0.0
+            ),
+        )
+        return lang, ok, times[0], stats
+    except Exception:
+        return lang, False, None, None
+
+
+def readme(warmup: int = 1, iterations: int = 3) -> None:
+    """Regenerate solutions.md (solution table) and ensure README.md links to it."""
+    ensure_data()
+
+    expected_lines = (DATA_DIR / "solution.tsv").read_text().rstrip("\n").split("\n")
+
+    dirs = sorted(
+        d
+        for d in SOLUTIONS_DIR.iterdir()
+        if d.is_dir() and not d.name.startswith(".") and (d / "justfile").exists()
+    )
+
+    rows: list[tuple[str, bool, float, float, float]] = []
+    failed: list[str] = []
+    for d in dirs:
+        lang, ok, _, stats = _collect_solution(d, expected_lines, warmup, iterations)
+        if ok and stats is not None:
+            rows.append((lang, True, stats.mean, stats.min, stats.max))
+        else:
+            failed.append(lang)
+
+    rows.sort(key=lambda r: r[2])
+
+    table = Table(title="Solutions")
+    table.add_column("#", justify="right", style="dim")
+    table.add_column("Language", style="cyan")
+    table.add_column("Status", justify="center")
+    table.add_column("Mean", justify="right")
+    table.add_column("Min", justify="right")
+    table.add_column("Max", justify="right")
+
+    for i, (lang, ok, mean, mn, mx) in enumerate(rows, 1):
+        table.add_row(str(i), lang, "OK", f"{mean:.4f}s", f"{mn:.4f}s", f"{mx:.4f}s")
+    for lang in sorted(failed):
+        table.add_row("—", lang, "[red]FAIL[/red]", "—", "—", "—")
+    console.print(table)
+
+    markdown = [
+        "# Solutions",
+        "",
+        f"Solution table for the 1BRC benchmark (N_POWER={N_POWER}, "
+        f"{10**N_POWER:,} rows, {warmup} warmup + {iterations} iterations).",
+        "",
+        "| # | Language | Status | Mean | Min | Max |",
+        "|---|----------|--------|------|-----|-----|",
+    ]
+    for i, (lang, ok, mean, mn, mx) in enumerate(rows, 1):
+        markdown.append(
+            f"| {i} | [{lang}](solutions/{lang}/) | OK | "
+            f"{mean:.4f}s | {mn:.4f}s | {mx:.4f}s |"
+        )
+    for lang in sorted(failed):
+        markdown.append(f"| — | [{lang}](solutions/{lang}/) | FAIL | — | — | — |")
+    markdown.append("")
+    (ROOT / "solutions.md").write_text("\n".join(markdown))
+
+    readme_path = ROOT / "README.md"
+    link = "- [Solutions](solutions.md)\n"
+    if readme_path.exists():
+        text = readme_path.read_text()
+        if "solutions.md" not in text:
+            readme_path.write_text(text.rstrip("\n") + "\n\n## Solutions\n\n" + link)
+    else:
+        readme_path.write_text(
+            "# 1BRC Polyglot\n\n"
+            "The One Billion Row Challenge solved in many languages.\n\n"
+            "## Solutions\n\n" + link
+        )
+
+    console.print("[green]Wrote solutions.md and updated README.md.[/green]")
+
+
 COMMANDS: dict[str, Callable[..., object]] = {
     "run": run_all,
     "benchmark": benchmark,
     "data": data,
     "sweep": sweep,
+    "readme": readme,
 }
 
 

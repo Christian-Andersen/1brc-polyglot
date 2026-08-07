@@ -1,0 +1,16 @@
+alias c := check
+alias r := run
+
+default: check run
+
+check:
+    prek run --all-files
+
+run:
+    gleam run
+
+build:
+    gleam build
+
+bench:
+    gleam run

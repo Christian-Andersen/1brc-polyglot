@@ -1,0 +1,9 @@
+[[repos]]
+repo = "local"
+
+[[repos.hooks]]
+id = "bash-syntax"
+name = "bash-syntax"
+language = "system"
+pass_filenames = false
+entry = "bash -n main.sh"

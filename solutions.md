@@ -1,0 +1,65 @@
+# Solutions
+
+Solution table for the 1BRC benchmark (N_POWER=5, 100,000 rows, 1 warmup + 3 iterations).
+
+| # | Language | Status | Mean | Min | Max |
+|---|----------|--------|------|-----|-----|
+| 1 | [c](solutions/c/) | OK | 0.0102s | 0.0100s | 0.0106s |
+| 2 | [cpp](solutions/cpp/) | OK | 0.0108s | 0.0105s | 0.0110s |
+| 3 | [odin](solutions/odin/) | OK | 0.0114s | 0.0113s | 0.0115s |
+| 4 | [zig](solutions/zig/) | OK | 0.0118s | 0.0116s | 0.0120s |
+| 5 | [rust](solutions/rust/) | OK | 0.0121s | 0.0119s | 0.0123s |
+| 6 | [go](solutions/go/) | OK | 0.0182s | 0.0178s | 0.0191s |
+| 7 | [v](solutions/v/) | OK | 0.0196s | 0.0190s | 0.0206s |
+| 8 | [crystal](solutions/crystal/) | OK | 0.0206s | 0.0204s | 0.0209s |
+| 9 | [ada](solutions/ada/) | OK | 0.0220s | 0.0213s | 0.0229s |
+| 10 | [d](solutions/d/) | OK | 0.0254s | 0.0249s | 0.0263s |
+| 11 | [ocaml](solutions/ocaml/) | OK | 0.0254s | 0.0248s | 0.0259s |
+| 12 | [pascal](solutions/pascal/) | OK | 0.0266s | 0.0257s | 0.0275s |
+| 13 | [nim](solutions/nim/) | OK | 0.0294s | 0.0287s | 0.0300s |
+| 14 | [lua](solutions/lua/) | OK | 0.0370s | 0.0361s | 0.0389s |
+| 15 | [cython](solutions/cython/) | OK | 0.0370s | 0.0357s | 0.0379s |
+| 16 | [objective-c](solutions/objective-c/) | OK | 0.0375s | 0.0368s | 0.0385s |
+| 17 | [sql](solutions/sql/) | OK | 0.0375s | 0.0356s | 0.0412s |
+| 18 | [fortran](solutions/fortran/) | OK | 0.0385s | 0.0381s | 0.0391s |
+| 19 | [typescript](solutions/typescript/) | OK | 0.0386s | 0.0372s | 0.0411s |
+| 20 | [sbcl](solutions/sbcl/) | OK | 0.0447s | 0.0436s | 0.0453s |
+| 21 | [php](solutions/php/) | OK | 0.0458s | 0.0455s | 0.0462s |
+| 22 | [dart](solutions/dart/) | OK | 0.0506s | 0.0504s | 0.0509s |
+| 23 | [assembly](solutions/assembly/) | OK | 0.0568s | 0.0563s | 0.0575s |
+| 24 | [perl](solutions/perl/) | OK | 0.0598s | 0.0596s | 0.0599s |
+| 25 | [csharp](solutions/csharp/) | OK | 0.0734s | 0.0729s | 0.0742s |
+| 26 | [bun](solutions/bun/) | OK | 0.0779s | 0.0755s | 0.0793s |
+| 27 | [awk](solutions/awk/) | OK | 0.0802s | 0.0789s | 0.0812s |
+| 28 | [guile](solutions/guile/) | OK | 0.0842s | 0.0832s | 0.0851s |
+| 29 | [fsharp](solutions/fsharp/) | OK | 0.0920s | 0.0907s | 0.0930s |
+| 30 | [deno](solutions/deno/) | OK | 0.1001s | 0.0982s | 0.1015s |
+| 31 | [java](solutions/java/) | OK | 0.1102s | 0.1013s | 0.1160s |
+| 32 | [haskell](solutions/haskell/) | OK | 0.1138s | 0.1123s | 0.1151s |
+| 33 | [kotlin](solutions/kotlin/) | OK | 0.1272s | 0.1207s | 0.1306s |
+| 34 | [cpython](solutions/cpython/) | OK | 0.1389s | 0.1335s | 0.1453s |
+| 35 | [ruby](solutions/ruby/) | OK | 0.1510s | 0.1502s | 0.1520s |
+| 36 | [pypy](solutions/pypy/) | OK | 0.1679s | 0.1659s | 0.1694s |
+| 37 | [clojure](solutions/clojure/) | OK | 0.2035s | 0.1981s | 0.2065s |
+| 38 | [gnu-smalltalk](solutions/gnu-smalltalk/) | OK | 0.2132s | 0.2078s | 0.2162s |
+| 39 | [haxe](solutions/haxe/) | OK | 0.2260s | 0.2244s | 0.2271s |
+| 40 | [neko](solutions/neko/) | OK | 0.2408s | 0.2389s | 0.2424s |
+| 41 | [tcl](solutions/tcl/) | OK | 0.2579s | 0.2553s | 0.2626s |
+| 42 | [octave](solutions/octave/) | OK | 0.3140s | 0.3123s | 0.3160s |
+| 43 | [gforth](solutions/gforth/) | OK | 0.3728s | 0.3703s | 0.3758s |
+| 44 | [nodejs](solutions/nodejs/) | OK | 0.3876s | 0.3832s | 0.3904s |
+| 45 | [elixir](solutions/elixir/) | OK | 0.3890s | 0.3837s | 0.3972s |
+| 46 | [erlang](solutions/erlang/) | OK | 0.3953s | 0.3895s | 0.3996s |
+| 47 | [scala](solutions/scala/) | OK | 0.4061s | 0.4003s | 0.4096s |
+| 48 | [racket](solutions/racket/) | OK | 0.4140s | 0.4117s | 0.4161s |
+| 49 | [rakudo](solutions/rakudo/) | OK | 0.4232s | 0.4135s | 0.4357s |
+| 50 | [julia](solutions/julia/) | OK | 0.4612s | 0.4553s | 0.4676s |
+| 51 | [sml](solutions/sml/) | OK | 0.6027s | 0.5947s | 0.6157s |
+| 52 | [r](solutions/r/) | OK | 0.6574s | 0.6512s | 0.6656s |
+| 53 | [powershell](solutions/powershell/) | OK | 0.7532s | 0.7445s | 0.7581s |
+| 54 | [groovy](solutions/groovy/) | OK | 1.1473s | 1.0836s | 1.2458s |
+| 55 | [gleam](solutions/gleam/) | OK | 1.3467s | 1.3431s | 1.3536s |
+| 56 | [bash](solutions/bash/) | OK | 2.8606s | 2.8310s | 2.8903s |
+| 57 | [swi-prolog](solutions/swi-prolog/) | OK | 3.7560s | 3.6569s | 3.9468s |
+| 58 | [chicken](solutions/chicken/) | OK | 3.7932s | 3.7898s | 3.7963s |
+| 59 | [lean](solutions/lean/) | OK | 8.1979s | 8.1069s | 8.2776s |

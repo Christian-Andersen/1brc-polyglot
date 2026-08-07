@@ -1,0 +1,16 @@
+alias c := check
+alias r := run
+
+default: check run
+
+check:
+    prek run --all-files
+
+run:
+    dotnet run
+
+build:
+    dotnet publish -c Release -o publish
+
+bench:
+    DOTNET_ROOT="$(dirname $(dirname $(readlink -f $(which dotnet))))/dotnet" ./publish/fsharp

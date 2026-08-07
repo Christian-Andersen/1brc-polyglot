@@ -1,0 +1,16 @@
+alias c := check
+alias r := run
+
+default: check run
+
+check:
+    prek run --all-files
+
+run:
+    swipl -q -f main.pl
+
+build:
+    @echo "nothing to build"
+
+bench:
+    swipl -q -f main.pl

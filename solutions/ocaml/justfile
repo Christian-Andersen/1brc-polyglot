@@ -1,0 +1,16 @@
+alias c := check
+alias r := run
+
+default: check run
+
+check:
+    prek run --all-files
+
+run:
+    ocamlopt -O2 -o main main.ml && ./main
+
+build:
+    ocamlopt -O2 -o main main.ml
+
+bench:
+    ./main

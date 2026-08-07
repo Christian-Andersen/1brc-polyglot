@@ -1,0 +1,9 @@
+[[repos]]
+repo = "local"
+
+[[repos.hooks]]
+id = "r-parse"
+name = "r-parse"
+language = "system"
+pass_filenames = false
+entry = "Rscript -e 'parse(\"main.R\")'"

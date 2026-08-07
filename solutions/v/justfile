@@ -1,0 +1,16 @@
+alias c := check
+alias r := run
+
+default: check run
+
+check:
+    prek run --all-files
+
+run:
+    v -prod -o main main.v && ./main
+
+build:
+    v -prod -o main main.v
+
+bench:
+    ./main
