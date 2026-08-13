@@ -11,9 +11,9 @@ default:
 check:
     prek run --all-files
 
-# run all solutions against current data
-run:
-    python main.py run
+# run all solutions against current data (optional substring filter, e.g. "just run zig")
+run *FILTER:
+    python main.py run {{ FILTER }}
 
 # benchmark all solutions (optional: warmup iterations)
 benchmark *ARGS:
@@ -27,6 +27,6 @@ data:
 sweep:
     python main.py sweep
 
-# regenerate solutions.md and link it from README.md
-readme:
-    python main.py readme
+# regenerate solutions.md and link it from README.md (optional: warmup iterations filter)
+readme *ARGS:
+    python main.py readme {{ ARGS }}

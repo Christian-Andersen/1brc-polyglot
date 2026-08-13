@@ -76,6 +76,13 @@ def ensure_data() -> None:
         link.symlink_to(target)
 
 
+def _filter_dirs(dirs: list[Path], pattern: str) -> list[Path]:
+    if not pattern:
+        return dirs
+    pat = pattern.casefold()
+    return [d for d in dirs if pat in d.name.casefold()]
+
+
 class SolutionResult(NamedTuple):
     lang: str
     elapsed: float | None
@@ -207,17 +214,23 @@ def _build_table(results: list[SolutionResult]) -> Table:
     return table
 
 
-def run_all() -> bool:
+def run_all(pattern: str = "") -> bool:
     ensure_data()
 
     solution_text = (DATA_DIR / "solution.tsv").read_text()
     expected_lines = solution_text.rstrip("\n").split("\n")
 
-    dirs = sorted(
-        d
-        for d in SOLUTIONS_DIR.iterdir()
-        if d.is_dir() and not d.name.startswith(".") and (d / "justfile").exists()
+    dirs = _filter_dirs(
+        sorted(
+            d
+            for d in SOLUTIONS_DIR.iterdir()
+            if d.is_dir() and not d.name.startswith(".") and (d / "justfile").exists()
+        ),
+        pattern,
     )
+    if not dirs:
+        console.print(f"[red]No solutions match filter '{pattern}'.[/red]")
+        return False
 
     console.print(
         f"[cyan]Running {len(dirs)} solutions "
@@ -262,16 +275,19 @@ def run_all() -> bool:
     return not errors
 
 
-def benchmark(warmup: int, iterations: int) -> None:
+def benchmark(warmup: int, iterations: int, pattern: str = "") -> None:
     ensure_data()
 
-    dirs = sorted(
-        d
-        for d in SOLUTIONS_DIR.iterdir()
-        if d.is_dir() and not d.name.startswith(".") and (d / "justfile").exists()
+    dirs = _filter_dirs(
+        sorted(
+            d
+            for d in SOLUTIONS_DIR.iterdir()
+            if d.is_dir() and not d.name.startswith(".") and (d / "justfile").exists()
+        ),
+        pattern,
     )
     if not dirs:
-        console.print("[red]No solution directories found.[/red]")
+        console.print(f"[red]No solutions match filter '{pattern}'.[/red]")
         return
 
     console.print(
@@ -421,17 +437,23 @@ def _collect_solution(
         return lang, False, None, None
 
 
-def readme(warmup: int = 1, iterations: int = 3) -> None:
+def readme(warmup: int = 1, iterations: int = 3, pattern: str = "") -> None:
     """Regenerate solutions.md (solution table) and ensure README.md links to it."""
     ensure_data()
 
     expected_lines = (DATA_DIR / "solution.tsv").read_text().rstrip("\n").split("\n")
 
-    dirs = sorted(
-        d
-        for d in SOLUTIONS_DIR.iterdir()
-        if d.is_dir() and not d.name.startswith(".") and (d / "justfile").exists()
+    dirs = _filter_dirs(
+        sorted(
+            d
+            for d in SOLUTIONS_DIR.iterdir()
+            if d.is_dir() and not d.name.startswith(".") and (d / "justfile").exists()
+        ),
+        pattern,
     )
+    if not dirs:
+        console.print(f"[red]No solutions match filter '{pattern}'.[/red]")
+        return
 
     rows: list[tuple[str, bool, float, float, float]] = []
     failed: list[str] = []
@@ -511,7 +533,16 @@ def main() -> None:
     if cmd == "benchmark":
         warmup = int(sys.argv[2]) if len(sys.argv) > 2 else 1
         iterations = int(sys.argv[3]) if len(sys.argv) > 3 else 3
-        benchmark(warmup, iterations)
+        pattern = sys.argv[4] if len(sys.argv) > 4 else ""
+        benchmark(warmup, iterations, pattern)
+    elif cmd == "run":
+        pattern = sys.argv[2] if len(sys.argv) > 2 else ""
+        run_all(pattern)
+    elif cmd == "readme":
+        warmup = int(sys.argv[2]) if len(sys.argv) > 2 else 1
+        iterations = int(sys.argv[3]) if len(sys.argv) > 3 else 3
+        pattern = sys.argv[4] if len(sys.argv) > 4 else ""
+        readme(warmup, iterations, pattern)
     else:
         COMMANDS[cmd]()
 

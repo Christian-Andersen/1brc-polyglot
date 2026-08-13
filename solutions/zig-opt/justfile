@@ -1,0 +1,16 @@
+alias c := check
+alias r := run
+
+default: check run
+
+check:
+    prek run --all-files
+
+run:
+    zig run main.zig
+
+build:
+    zig build -Drelease=true
+
+bench:
+    ./zig-out/bin/main
