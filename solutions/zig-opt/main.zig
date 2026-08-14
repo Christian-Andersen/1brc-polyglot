@@ -12,7 +12,7 @@ const Entry = struct {
     value: Data,
 };
 
-fn parse_temp(temp: []const u8) !i32 {
+fn parseTemp(temp: []const u8) !i32 {
     var buf: [4]u8 = undefined;
     var len: usize = 0;
     for (temp) |c| {
@@ -26,6 +26,34 @@ fn parse_temp(temp: []const u8) !i32 {
 
 fn entryLessThan(_: void, a: Entry, b: Entry) bool {
     return std.mem.lessThan(u8, a.key, b.key);
+}
+
+fn getSeperatorIndexes(buffer: []u8, cursor: usize) struct { usize, usize } {
+    if (cursor + 128 > buffer.len) {
+        var semi_idx: usize = cursor;
+        var nl_idx: usize = cursor;
+        var i = cursor;
+        while (i < buffer.len) : (i += 1) {
+            if (buffer[i] == ';') semi_idx = i;
+            if (buffer[i] == '\n') {
+                nl_idx = i;
+                break;
+            }
+        }
+        return .{ semi_idx, nl_idx };
+    }
+    const array_ptr: *const [128]u8 = @ptrCast(buffer[cursor..].ptr);
+    const v_data: @Vector(128, u8) = array_ptr.*;
+    const v_semi: @Vector(128, u8) = @splat(';');
+    const v_nl: @Vector(128, u8) = @splat('\n');
+    const semi_matches = v_data == v_semi;
+    const nl_matches = v_data == v_nl;
+    const semi_mask: u128 = @bitCast(semi_matches);
+    const nl_mask: u128 = @bitCast(nl_matches);
+    return .{
+        cursor + @ctz(semi_mask),
+        cursor + @ctz(nl_mask),
+    };
 }
 
 pub fn main(init: std.process.Init) !void {
@@ -51,12 +79,10 @@ pub fn main(init: std.process.Init) !void {
     defer std.posix.munmap(buffer);
     var cursor: usize = 0;
     while (cursor < buffer.len) {
-        const city_index = std.mem.findScalarPos(u8, buffer, cursor, ';') orelse break;
-        const city = buffer[cursor..city_index];
-        const temp_index = std.mem.findScalarPos(u8, buffer, city_index + 1, '\n') orelse break;
-        const temp_str = buffer[city_index + 1 .. temp_index];
-        const temp = try parse_temp(temp_str);
-        cursor = temp_index + 1;
+        const indexes = getSeperatorIndexes(buffer, cursor);
+        const city = buffer[cursor..indexes[0]];
+        const temp = try parseTemp(buffer[indexes[0] + 1 .. indexes[1]]);
+        cursor = indexes[1] + 1;
         const result = try data.getOrPut(city);
         if (result.found_existing) {
             result.value_ptr.*.min = @min(result.value_ptr.*.min, temp);
