@@ -7,6 +7,11 @@ const Data = struct {
     count: i32,
 };
 
+const Entry = struct {
+    key: []const u8,
+    value: Data,
+};
+
 fn parse_temp(temp: []const u8) !i32 {
     var buf: [4]u8 = undefined;
     var len: usize = 0;
@@ -19,8 +24,8 @@ fn parse_temp(temp: []const u8) !i32 {
     return std.fmt.parseInt(i32, buf[0..len], 10);
 }
 
-fn ascLessThan(_: void, lhs: []const u8, rhs: []const u8) bool {
-    return std.mem.lessThan(u8, lhs, rhs);
+fn entryLessThan(_: void, a: Entry, b: Entry) bool {
+    return std.mem.lessThan(u8, a.key, b.key);
 }
 
 pub fn main(init: std.process.Init) !void {
@@ -63,25 +68,22 @@ pub fn main(init: std.process.Init) !void {
             result.value_ptr.* = Data{ .min = temp, .max = temp, .total = temp, .count = 1 };
         }
     }
-    var backing_buffer: [1024][]const u8 = undefined;
-    var keys_list = std.ArrayListUnmanaged([]const u8).initBuffer(&backing_buffer);
-    var iterator = data.keyIterator();
-    while (iterator.next()) |key_ptr| {
-        keys_list.appendAssumeCapacity(key_ptr.*);
+    var entries = std.ArrayListUnmanaged(Entry).empty;
+    var iterator = data.iterator();
+    while (iterator.next()) |kv| {
+        try entries.append(arena_allocator, .{ .key = kv.key_ptr.*, .value = kv.value_ptr.* });
     }
-    const keys = keys_list.items;
-    std.mem.sort([]const u8, keys, {}, ascLessThan);
+    std.mem.sort(Entry, entries.items, {}, entryLessThan);
     var buf: [40960]u8 = undefined;
     var writer = std.Io.File.stdout().writerStreaming(io, &buf);
     const stdout = &writer.interface;
-    for (keys) |key| {
-        const value = data.get(key).?;
+    for (entries.items) |entry| {
         try stdout.print("{s}\t{d}\t{d}\t{d}\t{d}\n", .{
-            key,
-            value.min,
-            value.max,
-            value.total,
-            value.count,
+            entry.key,
+            entry.value.min,
+            entry.value.max,
+            entry.value.total,
+            entry.value.count,
         });
     }
     try writer.flush();
