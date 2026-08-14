@@ -9,8 +9,13 @@ check:
 run:
     zig run main.zig
 
+perf:
+    zig build
+    perf record -g ./zig-out/bin/main
+    perf report
+
 build:
-    zig build -Drelease=true
+    zig build --release=fast
 
 bench:
     ./zig-out/bin/main
