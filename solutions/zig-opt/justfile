@@ -7,7 +7,7 @@ check:
     prek run --all-files
 
 run:
-    zig run main.zig
+    zig build run
 
 perf:
     zig build
