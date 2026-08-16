@@ -45,19 +45,15 @@ fn entryLessThan(_: void, a: Entry, b: Entry) bool {
 }
 
 fn findSemicolon(buffer: []u8, cursor: usize) usize {
-    if (cursor + 128 > buffer.len) {
-        for (cursor..buffer.len) |i| {
-            if (buffer[i] == ';') {
-                return i;
-            }
-        }
+    if (cursor + 32 > buffer.len) {
+        return std.mem.indexOfScalarPos(u8, buffer, cursor, ';') orelse unreachable;
     }
-    const array_ptr: *const [128]u8 = @ptrCast(buffer[cursor..].ptr);
-    const v_data: @Vector(128, u8) = array_ptr.*;
-    const v_semi: @Vector(128, u8) = @splat(';');
-    const semi_matches = v_data == v_semi;
-    const semi_mask: u128 = @bitCast(semi_matches);
-    return cursor + @ctz(semi_mask);
+    const semi: @Vector(32, u8) = @splat(';');
+    const a_ptr: *const [32]u8 = @ptrCast(buffer[cursor..].ptr);
+    const a: @Vector(32, u8) = a_ptr.*;
+    const mask_a: u32 = @bitCast(a == semi);
+    if (mask_a != 0) return cursor + @ctz(mask_a);
+    return std.mem.indexOfScalarPos(u8, buffer, cursor, ';') orelse unreachable;
 }
 
 pub fn main(init: std.process.Init) !void {
