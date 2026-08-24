@@ -1,4 +1,3 @@
-alias b := build
 alias c := check
 alias r := run
 
@@ -14,9 +13,6 @@ perf:
     zig build
     perf record -g ./zig-out/bin/main
     perf report
-
-time runs="1": build
-    hyperfine --shell=none --warmup 1 --runs {{ runs }} ./zig-out/bin/main ./zig-out/bin/main-old
 
 build:
     zig build --release=fast

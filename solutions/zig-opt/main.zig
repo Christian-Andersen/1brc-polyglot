@@ -1,5 +1,4 @@
 const std = @import("std");
-const config = @import("config");
 
 const Data = struct {
     min: i32,
@@ -46,16 +45,14 @@ fn entryLessThan(_: void, a: Entry, b: Entry) bool {
 }
 
 fn findSemicolon(buffer: []u8, cursor: usize) usize {
-    if (config.enable_feature) {
-        if (cursor + 32 > buffer.len) {
-            return std.mem.indexOfScalarPos(u8, buffer, cursor, ';') orelse unreachable;
-        }
-        const semi: @Vector(32, u8) = @splat(';');
-        const a_ptr: *const [32]u8 = @ptrCast(buffer[cursor..].ptr);
-        const a: @Vector(32, u8) = a_ptr.*;
-        const mask_a: u32 = @bitCast(a == semi);
-        if (mask_a != 0) return cursor + @ctz(mask_a);
+    if (cursor + 32 > buffer.len) {
+        return std.mem.indexOfScalarPos(u8, buffer, cursor, ';') orelse unreachable;
     }
+    const semi: @Vector(32, u8) = @splat(';');
+    const a_ptr: *const [32]u8 = @ptrCast(buffer[cursor..].ptr);
+    const a: @Vector(32, u8) = a_ptr.*;
+    const mask_a: u32 = @bitCast(a == semi);
+    if (mask_a != 0) return cursor + @ctz(mask_a);
     return std.mem.indexOfScalarPos(u8, buffer, cursor, ';') orelse unreachable;
 }
 
