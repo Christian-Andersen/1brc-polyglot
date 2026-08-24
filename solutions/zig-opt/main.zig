@@ -1,12 +1,13 @@
 const std = @import("std");
 
-const HashEntry = struct {
-    name: [100]u8,
-    min: i32,
-    max: i32,
-    total: i32,
-    count: i32,
-    len: u8,
+const HASH_MAP_SIZE = 16384;
+
+const StationEntry = struct {
+    name: []const u8 = undefined,
+    min: i32 = 2000,
+    max: i32 = -2000,
+    total: i32 = 0,
+    count: i32 = 0,
 };
 
 fn hashStation(name: []const u8) u32 {
@@ -21,10 +22,10 @@ fn hashStation(name: []const u8) u32 {
     }
     var last_4: u32 = 0;
     if (len >= 4) {
-        last_4 = std.mem.readInt(u32, name[len - 4 .. len], .little);
+        last_4 = std.mem.readInt(u32, name[len - 4 .. len][0..4], .little);
     }
-    var hash: u32 = first_4 ^ last_4 ^ @as(u32, len);
-    hash = hash *% 16777619;
+    var hash: u32 = first_4 ^ last_4 ^ @as(u32, @intCast(len));
+    hash %= HASH_MAP_SIZE;
     return hash;
 }
 
@@ -68,7 +69,7 @@ fn parseTempAt(buffer: []u8, semi: usize) Parsed {
     }
 }
 
-fn entryLessThan(_: void, a: Entry, b: Entry) bool {
+fn resultLessThan(_: void, a: Entry, b: Entry) bool {
     return std.mem.lessThan(u8, a.key, b.key);
 }
 
@@ -84,14 +85,25 @@ fn findSemicolon(buffer: []u8, cursor: usize) usize {
     return std.mem.indexOfScalarPos(u8, buffer, cursor, ';') orelse unreachable;
 }
 
+fn getStationEntry(data: [HASH_MAP_SIZE]StationEntry, city: []u8) *StationEntry {
+    const hash = hashStation(city);
+    for (0..HASH_MAP_SIZE) |i| {
+        const index = (hash + i) % HASH_MAP_SIZE;
+        var result = &data[index];
+        if (result.count == 0) {
+            // first time we have seen station, and it's hash is free
+            result.name = city;
+            return result;
+        }
+        if (std.mem.eql(u8, city, result.name)) {
+            return result;
+        }
+    }
+    undefined;
+}
+
 pub fn main(init: std.process.Init) !void {
-    var arena = std.heap.ArenaAllocator{
-        .child_allocator = init.gpa,
-        .state = .{},
-    };
-    defer arena.deinit();
-    const arena_allocator = arena.allocator();
-    var data = std.StringHashMap(Data).init(arena_allocator);
+    // setup
     const io = init.io;
     const file = try std.Io.Dir.cwd().openFile(io, "../../data/measurements.txt", .{ .mode = .read_only });
     defer file.close(io);
@@ -106,38 +118,49 @@ pub fn main(init: std.process.Init) !void {
     );
     defer std.posix.munmap(buffer);
     var cursor: usize = 0;
+    const data: [HASH_MAP_SIZE]StationEntry = @splat(.{});
+    // hot loop
     while (cursor < buffer.len) {
         const semi = findSemicolon(buffer, cursor);
         const city = buffer[cursor..semi];
         const parsed = parseTempAt(buffer, semi);
         cursor = parsed.nl_idx + 1;
-        const result = try data.getOrPut(city);
-        if (result.found_existing) {
-            result.value_ptr.*.min = @min(result.value_ptr.*.min, parsed.temp);
-            result.value_ptr.*.max = @max(result.value_ptr.*.max, parsed.temp);
-            result.value_ptr.*.total += parsed.temp;
-            result.value_ptr.*.count += 1;
-        } else {
-            result.key_ptr.* = city;
-            result.value_ptr.* = Data{ .min = parsed.temp, .max = parsed.temp, .total = parsed.temp, .count = 1 };
+        const result = getStationEntry(data, city);
+        result.name = city;
+        result.min = @min(result.min, parsed.temp);
+        result.max = @max(result.max, parsed.temp);
+        result.total += parsed.temp;
+        result.count += 1;
+    }
+    // print
+    var arena = std.heap.ArenaAllocator.init(init.gpa);
+    defer arena.deinit();
+    const arena_allocator = arena.allocator();
+    var entries = std.ArrayListUnmanaged(Entry).empty;
+    for (data) |result| {
+        if (result.count != 0) {
+            try entries.append(arena_allocator, .{
+                .key = result.name,
+                .value = .{
+                    .min = result.min,
+                    .max = result.max,
+                    .total = result.total,
+                    .count = result.count,
+                },
+            });
         }
     }
-    var entries = std.ArrayListUnmanaged(Entry).empty;
-    var iterator = data.iterator();
-    while (iterator.next()) |kv| {
-        try entries.append(arena_allocator, .{ .key = kv.key_ptr.*, .value = kv.value_ptr.* });
-    }
-    std.mem.sort(Entry, entries.items, {}, entryLessThan);
-    var buf: [40960]u8 = undefined;
+    std.mem.sort(Entry, entries.items, {}, resultLessThan);
+    var buf: [65536]u8 = undefined;
     var writer = std.Io.File.stdout().writerStreaming(io, &buf);
     const stdout = &writer.interface;
-    for (entries.items) |entry| {
+    for (entries.items) |result| {
         try stdout.print("{s}\t{d}\t{d}\t{d}\t{d}\n", .{
-            entry.key,
-            entry.value.min,
-            entry.value.max,
-            entry.value.total,
-            entry.value.count,
+            result.key,
+            result.value.min,
+            result.value.max,
+            result.value.total,
+            result.value.count,
         });
     }
     try writer.flush();
