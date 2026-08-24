@@ -1,5 +1,33 @@
 const std = @import("std");
 
+const HashEntry = struct {
+    name: [100]u8,
+    min: i32,
+    max: i32,
+    total: i32,
+    count: i32,
+    len: u8,
+};
+
+fn hashStation(name: []const u8) u32 {
+    const len = name.len;
+    var first_4: u32 = 0;
+    if (len >= 4) {
+        first_4 = std.mem.readInt(u32, name[0..4], .little);
+    } else {
+        for (name, 0..) |b, i| {
+            first_4 |= @as(u32, b) << @intCast(i * 8);
+        }
+    }
+    var last_4: u32 = 0;
+    if (len >= 4) {
+        last_4 = std.mem.readInt(u32, name[len - 4 .. len], .little);
+    }
+    var hash: u32 = first_4 ^ last_4 ^ @as(u32, len);
+    hash = hash *% 16777619;
+    return hash;
+}
+
 const Data = struct {
     min: i32,
     max: i32,
