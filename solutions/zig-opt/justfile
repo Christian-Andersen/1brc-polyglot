@@ -16,7 +16,7 @@ perf:
     perf report
 
 time runs="1": build
-    hyperfine --shell=none --warmup=1 --runs={{ runs }} ./zig-out/bin/main-old ./zig-out/bin/main
+    hyperfine --shell=none --warmup=1 --runs={{ runs }} ./zig-out/bin/*
 
 build:
     zig build --release=fast

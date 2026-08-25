@@ -85,21 +85,20 @@ fn findSemicolon(buffer: []u8, cursor: usize) usize {
     return std.mem.indexOfScalarPos(u8, buffer, cursor, ';') orelse unreachable;
 }
 
-fn getStationEntry(data: [HASH_MAP_SIZE]StationEntry, city: []u8) *StationEntry {
+fn getStationEntry(data: []StationEntry, city: []u8) *StationEntry {
     const hash = hashStation(city);
     for (0..HASH_MAP_SIZE) |i| {
         const index = (hash + i) % HASH_MAP_SIZE;
-        var result = &data[index];
+        const result = &data[index];
         if (result.count == 0) {
-            // first time we have seen station, and it's hash is free
-            result.name = city;
+            result.*.name = city;
             return result;
         }
         if (std.mem.eql(u8, city, result.name)) {
             return result;
         }
     }
-    undefined;
+    unreachable;
 }
 
 pub fn main(init: std.process.Init) !void {
@@ -118,14 +117,14 @@ pub fn main(init: std.process.Init) !void {
     );
     defer std.posix.munmap(buffer);
     var cursor: usize = 0;
-    const data: [HASH_MAP_SIZE]StationEntry = @splat(.{});
+    var data: [HASH_MAP_SIZE]StationEntry = @splat(.{});
     // hot loop
     while (cursor < buffer.len) {
         const semi = findSemicolon(buffer, cursor);
         const city = buffer[cursor..semi];
         const parsed = parseTempAt(buffer, semi);
         cursor = parsed.nl_idx + 1;
-        const result = getStationEntry(data, city);
+        const result = getStationEntry(&data, city);
         result.name = city;
         result.min = @min(result.min, parsed.temp);
         result.max = @max(result.max, parsed.temp);
@@ -164,4 +163,5 @@ pub fn main(init: std.process.Init) !void {
         });
     }
     try writer.flush();
+    std.debug.print("{d}\n", .{entries.items.len});
 }
