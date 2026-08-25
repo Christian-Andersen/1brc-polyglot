@@ -1,6 +1,9 @@
 const std = @import("std");
 
 const HASH_MAP_SIZE = 16384;
+const MAX_CORES = 256;
+var THREADS: [MAX_CORES]std.Thread = undefined;
+var RESULTS: [MAX_CORES][HASH_MAP_SIZE]StationEntry = undefined;
 
 const StationEntry = struct {
     name: []const u8 = undefined,
@@ -85,7 +88,7 @@ fn findSemicolon(buffer: []u8, cursor: usize) usize {
     return std.mem.indexOfScalarPos(u8, buffer, cursor, ';') orelse unreachable;
 }
 
-fn getStationEntry(data: []StationEntry, city: []u8) *StationEntry {
+fn getStationEntry(data: []StationEntry, city: []const u8) *StationEntry {
     const hash = hashStation(city);
     for (0..HASH_MAP_SIZE) |i| {
         const index = (hash + i) % HASH_MAP_SIZE;
@@ -99,6 +102,30 @@ fn getStationEntry(data: []StationEntry, city: []u8) *StationEntry {
         }
     }
     unreachable;
+}
+
+fn map(buffer: []u8, start_index: usize, end_index: usize, data: *[HASH_MAP_SIZE]StationEntry) void {
+    var cursor = start_index;
+    if (cursor != 0) {
+        while (buffer[cursor] != '\n') {
+            cursor += 1;
+        }
+        cursor += 1;
+    }
+    data.* = @splat(.{}); // initialize the data
+    while (cursor < end_index) {
+        const semi = findSemicolon(buffer, cursor);
+        const city = buffer[cursor..semi];
+        const parsed = parseTempAt(buffer, semi);
+        cursor = parsed.nl_idx + 1;
+        const result = getStationEntry(data, city);
+        // TODO: remove below line fully as we do it in `getStationEntry`
+        // result.name = city;
+        result.min = @min(result.min, parsed.temp);
+        result.max = @max(result.max, parsed.temp);
+        result.total += parsed.temp;
+        result.count += 1;
+    }
 }
 
 pub fn main(init: std.process.Init) !void {
@@ -116,22 +143,29 @@ pub fn main(init: std.process.Init) !void {
         0,
     );
     defer std.posix.munmap(buffer);
-    var cursor: usize = 0;
-    var data: [HASH_MAP_SIZE]StationEntry = @splat(.{});
-    // hot loop
-    while (cursor < buffer.len) {
-        const semi = findSemicolon(buffer, cursor);
-        const city = buffer[cursor..semi];
-        const parsed = parseTempAt(buffer, semi);
-        cursor = parsed.nl_idx + 1;
-        const result = getStationEntry(&data, city);
-        result.name = city;
-        result.min = @min(result.min, parsed.temp);
-        result.max = @max(result.max, parsed.temp);
-        result.total += parsed.temp;
-        result.count += 1;
+    // threading
+    const thread_count = @min(try std.Thread.getCpuCount(), MAX_CORES);
+    const chunk_size = @divFloor(buffer.len, thread_count);
+    for (0..thread_count) |i| {
+        const start = i * chunk_size;
+        const end = if (i == thread_count - 1) buffer.len else (i + 1) * chunk_size;
+        THREADS[i] = try std.Thread.spawn(.{}, map, .{ buffer, start, end, &RESULTS[i] });
     }
-    // print
+    //collect
+    for (0..thread_count) |i| {
+        THREADS[i].join();
+    }
+    var data: [HASH_MAP_SIZE]StationEntry = @splat(.{});
+    for (0..thread_count) |i| {
+        for (RESULTS[i]) |datum| {
+            if (datum.count == 0) continue;
+            const result = getStationEntry(&data, datum.name);
+            result.min = @min(result.min, datum.min);
+            result.max = @max(result.max, datum.max);
+            result.total += datum.total;
+            result.count += datum.count;
+        }
+    }
     var arena = std.heap.ArenaAllocator.init(init.gpa);
     defer arena.deinit();
     const arena_allocator = arena.allocator();
