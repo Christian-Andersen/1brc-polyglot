@@ -77,15 +77,19 @@ fn resultLessThan(_: void, a: Entry, b: Entry) bool {
 }
 
 fn findSemicolon(buffer: []u8, cursor: usize) usize {
-    if (cursor + 32 > buffer.len) {
+    if (cursor + 16 > buffer.len) {
         return std.mem.indexOfScalarPos(u8, buffer, cursor, ';') orelse unreachable;
     }
-    const semi: @Vector(32, u8) = @splat(';');
-    const a_ptr: *const [32]u8 = @ptrCast(buffer[cursor..].ptr);
-    const a: @Vector(32, u8) = a_ptr.*;
-    const mask_a: u32 = @bitCast(a == semi);
+    const semi: @Vector(16, u8) = @splat(';');
+    const a_ptr: *const [16]u8 = @ptrCast(buffer[cursor..].ptr);
+    const a: @Vector(16, u8) = a_ptr.*;
+    const mask_a: u16 = @bitCast(a == semi);
     if (mask_a != 0) return cursor + @ctz(mask_a);
-    return std.mem.indexOfScalarPos(u8, buffer, cursor, ';') orelse unreachable;
+    const b_ptr: *const [16]u8 = @ptrCast(buffer[cursor..].ptr);
+    const b: @Vector(16, u8) = b_ptr.*;
+    const mask_b: u16 = @bitCast(b == semi);
+    if (mask_b != 0) return cursor + @ctz(mask_b);
+    return std.mem.indexOfScalarPos(u8, buffer, cursor + 32, ';') orelse unreachable;
 }
 
 fn getStationEntry(data: []StationEntry, city: []const u8) *StationEntry {
