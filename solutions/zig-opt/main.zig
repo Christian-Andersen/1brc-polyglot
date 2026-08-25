@@ -106,21 +106,19 @@ fn getStationEntry(data: []StationEntry, city: []const u8) *StationEntry {
 
 fn map(buffer: []u8, start_index: usize, end_index: usize, data: *[HASH_MAP_SIZE]StationEntry) void {
     var cursor = start_index;
-    if (cursor != 0) {
+    if ((cursor != 0) and (buffer[cursor - 1] != '\n')) {
         while (buffer[cursor] != '\n') {
             cursor += 1;
         }
         cursor += 1;
     }
-    data.* = @splat(.{}); // initialize the data
+    data.* = @splat(.{});
     while (cursor < end_index) {
         const semi = findSemicolon(buffer, cursor);
         const city = buffer[cursor..semi];
         const parsed = parseTempAt(buffer, semi);
         cursor = parsed.nl_idx + 1;
         const result = getStationEntry(data, city);
-        // TODO: remove below line fully as we do it in `getStationEntry`
-        // result.name = city;
         result.min = @min(result.min, parsed.temp);
         result.max = @max(result.max, parsed.temp);
         result.total += parsed.temp;
@@ -197,5 +195,4 @@ pub fn main(init: std.process.Init) !void {
         });
     }
     try writer.flush();
-    std.debug.print("{d}\n", .{entries.items.len});
 }
