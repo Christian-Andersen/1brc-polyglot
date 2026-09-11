@@ -1,6 +1,6 @@
 const std = @import("std");
 
-const HASH_MAP_SIZE = 16384;
+const HASH_MAP_SIZE = 16384; // TODO: adjust this down, which requires writing code for it to grow!
 const MAX_CORES = 256;
 var THREADS: [MAX_CORES]std.Thread = undefined;
 var RESULTS: [MAX_CORES][HASH_MAP_SIZE]StationEntry = undefined;
