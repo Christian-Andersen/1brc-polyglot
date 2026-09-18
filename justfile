@@ -30,3 +30,5 @@ sweep:
 # regenerate solutions.md and link it from README.md (optional: warmup iterations filter)
 readme *ARGS:
     python main.py readme {{ ARGS }}
+
+ci: check
