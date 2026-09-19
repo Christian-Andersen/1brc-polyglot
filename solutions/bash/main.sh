@@ -1,4 +1,3 @@
-#!/usr/bin/env bash
 set -euo pipefail
 
 declare -A min max total count

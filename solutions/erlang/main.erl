@@ -1,5 +1,3 @@
-#!/usr/bin/env escript
-
 main(_) ->
     ok = io:setopts(standard_io, [{encoding, utf8}]),
     {ok, F} = file:open("../../data/measurements.txt", [read, {encoding, utf8}]),
