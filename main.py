@@ -102,6 +102,7 @@ def _run_solution(dir: Path, expected_lines: list[str]) -> SolutionResult:
     try:
         build_result = subprocess.run(
             ["just", "build"],
+            check=False,
             cwd=dir,
             capture_output=True,
             text=True,
@@ -121,6 +122,7 @@ def _run_solution(dir: Path, expected_lines: list[str]) -> SolutionResult:
         start = time.perf_counter()
         result = subprocess.run(
             ["just", "bench"],
+            check=False,
             cwd=dir,
             capture_output=True,
             text=True,
@@ -185,7 +187,7 @@ def _run_solution(dir: Path, expected_lines: list[str]) -> SolutionResult:
                 border_style="green",
             ),
         )
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         return SolutionResult(
             lang,
             None,
@@ -233,8 +235,7 @@ def run_all(pattern: str = "") -> bool:
         return False
 
     console.print(
-        f"[cyan]Running {len(dirs)} solutions "
-        f"(N_POWER={N_POWER}, {10**N_POWER:,} rows)...[/cyan]",
+        f"[cyan]Running {len(dirs)} solutions (N_POWER={N_POWER}, {10**N_POWER:,} rows)...[/cyan]",
     )
 
     results: list[SolutionResult] = []
@@ -340,6 +341,7 @@ def _bench_solution(
 
     subprocess.run(
         ["just", "build"],
+        check=False,
         cwd=dir,
         capture_output=True,
     )
@@ -348,6 +350,7 @@ def _bench_solution(
         start = time.perf_counter()
         subprocess.run(
             ["just", "bench"],
+            check=False,
             cwd=dir,
             capture_output=True,
         )
@@ -393,6 +396,7 @@ def _collect_solution(
     try:
         build = subprocess.run(
             ["just", "build"],
+            check=False,
             cwd=dir,
             capture_output=True,
             text=True,
@@ -406,6 +410,7 @@ def _collect_solution(
             start = time.perf_counter()
             result = subprocess.run(
                 ["just", "bench"],
+                check=False,
                 cwd=dir,
                 capture_output=True,
                 text=True,
@@ -433,7 +438,7 @@ def _collect_solution(
             ),
         )
         return lang, ok, times[0], stats
-    except Exception:
+    except Exception:  # noqa: BLE001
         return lang, False, None, None
 
 
@@ -484,15 +489,14 @@ def readme(warmup: int = 1, iterations: int = 3, pattern: str = "") -> None:
         "# Solutions",
         "",
         f"Solution table for the 1BRC benchmark (N_POWER={N_POWER}, "
-        f"{10**N_POWER:,} rows, {warmup} warmup + {iterations} iterations).",
+        + f"{10**N_POWER:,} rows, {warmup} warmup + {iterations} iterations).",
         "",
         "| # | Language | Status | Mean | Min | Max |",
         "|---|----------|--------|------|-----|-----|",
     ]
     for i, (lang, ok, mean, mn, mx) in enumerate(rows, 1):
         markdown.append(
-            f"| {i} | [{lang}](solutions/{lang}/) | OK | "
-            f"{mean:.4f}s | {mn:.4f}s | {mx:.4f}s |"
+            f"| {i} | [{lang}](solutions/{lang}/) | OK | {mean:.4f}s | {mn:.4f}s | {mx:.4f}s |"
         )
     for lang in sorted(failed):
         markdown.append(f"| — | [{lang}](solutions/{lang}/) | FAIL | — | — | — |")
@@ -507,9 +511,8 @@ def readme(warmup: int = 1, iterations: int = 3, pattern: str = "") -> None:
             readme_path.write_text(text.rstrip("\n") + "\n\n## Solutions\n\n" + link)
     else:
         readme_path.write_text(
-            "# 1BRC Polyglot\n\n"
-            "The One Billion Row Challenge solved in many languages.\n\n"
-            "## Solutions\n\n" + link
+            "# 1BRC Polyglot\n\nThe One Billion Row Challenge solved in many languages.\n\n## Solutions\n\n"
+            + link
         )
 
     console.print("[green]Wrote solutions.md and updated README.md.[/green]")
