@@ -77,7 +77,6 @@
         gnustep-base
         nasm
         smlnj
-        lean4
         duckdb
       ];
     };
