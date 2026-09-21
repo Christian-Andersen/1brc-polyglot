@@ -68,6 +68,7 @@
         swi-prolog
         gnu-smalltalk
         haxe
+        hyperfine
         neko
         gforth
         gleam
