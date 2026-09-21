@@ -3,4 +3,4 @@ version = "0.1.0"
 target = "erlang"
 
 [dependencies]
-gleam_stdlib = "0.49.0"
+gleam_stdlib = "== 0.71.0"
