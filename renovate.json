@@ -1,17 +1,26 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended"],
   "nix": {
     "enabled": true
   },
   "lockFileMaintenance": {
-    "enabled": true,
-    "schedule": ["before 6am on monday"]
+    "enabled": true
   },
   "packageRules": [
     {
+      "description": "Group Nix flake input updates into a single PR",
       "matchManagers": ["nix"],
-      "groupName": "nix inputs",
-      "groupSlug": "nix-inputs"
+      "matchUpdateTypes": ["digest"],
+      "groupName": "Nix flake inputs",
+      "groupSlug": "nix-flake-inputs"
+    },
+    {
+      "description": "Group non-major CI action updates in .forgejo/workflows; major bumps get their own PR",
+      "matchManagers": ["github-actions"],
+      "matchUpdateTypes": ["digest", "patch", "minor"],
+      "groupName": "CI workflow actions",
+      "groupSlug": "ci-workflow-actions"
     }
   ]
 }
