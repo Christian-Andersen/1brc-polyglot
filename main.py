@@ -145,7 +145,7 @@ def _run_solution(dir: Path, expected_lines: list[str]) -> SolutionResult:
 
         if actual_lines != expected_lines:
             first_diff = None
-            for i, (e, a) in enumerate(zip(expected_lines, actual_lines, strict=False)):
+            for i, (e, a) in enumerate(zip(expected_lines, actual_lines)):
                 if e != a:
                     first_diff = i
                     break
