@@ -1,6 +1,5 @@
 import concurrent.futures
 import math
-import multiprocessing
 import os
 import shutil
 import subprocess
@@ -23,7 +22,6 @@ console = Console()
 
 N_POWER = int(os.environ.get("N_POWER", "9"))
 PARALLEL = os.environ.get("PARALLEL", "1") == "1"
-print_lock = multiprocessing.Lock()
 
 
 def ensure_data() -> None:
@@ -145,7 +143,7 @@ def _run_solution(dir: Path, expected_lines: list[str]) -> SolutionResult:
 
         if actual_lines != expected_lines:
             first_diff = None
-            for i, (e, a) in enumerate(zip(expected_lines, actual_lines, strict=False)):
+            for i, (e, a) in enumerate(zip(expected_lines, actual_lines)):
                 if e != a:
                     first_diff = i
                     break
@@ -260,8 +258,7 @@ def run_all(pattern: str = "") -> bool:
                     pool.submit(_run_solution, d, expected_lines): d for d in dirs
                 }
                 for future in concurrent.futures.as_completed(futures):
-                    with print_lock:
-                        add_result(future.result())
+                    add_result(future.result())
         else:
             for d in dirs:
                 add_result(_run_solution(d, expected_lines))

@@ -13,9 +13,9 @@ class Stats(NamedTuple):
 
 def main() -> int:
     data = {}
-    with DATA_PATH.open("r") as f:
+    with DATA_PATH.open("r", encoding="utf-8") as f:
         for line in f:
-            city, temp = line.strip().split(";")
+            city, temp = line.rstrip("\n").split(";")
             temp = int(temp.replace(".", ""))
             if city in data:
                 s = data[city]

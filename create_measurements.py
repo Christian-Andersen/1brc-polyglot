@@ -16,7 +16,6 @@
 
 import pathlib
 import sys
-import time
 
 import numpy as np
 import polars as pl
@@ -443,8 +442,6 @@ BATCH_SIZE = 5_000_000
 
 
 def main() -> None:
-    start = time.time()
-
     if len(sys.argv) != 2:
         sys.exit(1)
 
@@ -483,10 +480,6 @@ def main() -> None:
             df.write_csv(f, separator=";", include_header=False, float_precision=1)
 
             written += batch
-            if written % 50_000_000 < BATCH_SIZE:
-                int((time.time() - start) * 1000)
-
-    int((time.time() - start) * 1000)
 
 
 if __name__ == "__main__":
