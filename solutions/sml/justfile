@@ -7,10 +7,10 @@ check:
     prek run --all-files
 
 run:
-    @nix-shell -p smlnj --run "sml main.sml" | awk 'index($0, "\t")'
+    @sml main.sml | awk 'index($0, "\t")'
 
 build:
     @echo "nothing to build"
 
 bench:
-    @nix-shell -p smlnj --run "sml main.sml" | awk 'index($0, "\t")'
+    @sml main.sml | awk 'index($0, "\t")'
